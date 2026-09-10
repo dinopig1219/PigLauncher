@@ -17,8 +17,8 @@ android {
 
         versionCode = ciVersionCode
         versionName = releaseTag
-            ?: commitSha?.let { "1.0.0-$it" }
-            ?: "1.0.0"
+            ?: commitSha?.let { "1.0-$it" }
+            ?: "1.0"
     }
 
     signingConfigs {
