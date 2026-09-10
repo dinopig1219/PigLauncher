@@ -11,31 +11,15 @@ public final class MainHook implements IXposedHookLoadPackage {
     private static final String TAG = "PigLauncher";
     private static final String TARGET_PACKAGE = "com.mi.android.globallauncher";
 
-    // Fix 1: large folder dark-mode background
     private static final String LARGE_FOLDER_BACKGROUND =
             "com.miui.home.folder.FolderIcon4x4NormalBackgroundDrawable";
 
-    // Fix 2: Advanced Material / background blur support
     private static final String BLUR_UTILITIES =
             "com.miui.home.common.utils.BlurUtilities";
 
     private static final String BUILD_CONFIG_UTILS =
             "com.miui.home.common.utils.BuildConfigUtils";
 
-    /*
-     * We do NOT globally turn POCO Launcher into MIUI Launcher.
-     *
-     * Instead, this depth is > 0 only while code that legitimately needs
-     * the MIUI-launcher gate bypass is executing:
-     *
-     *  1. FolderIcon4x4NormalBackgroundDrawable constructors
-     *  2. BlurUtilities.isBlurSupported()
-     *
-     * If either original POCO code path calls BuildConfigUtils.isMiuiLauncher()
-     * during that window, only that call is changed to true.
-     *
-     * A depth counter (rather than a boolean) keeps nested calls safe.
-     */
     private static final ThreadLocal<Integer> MIUI_LAUNCHER_OVERRIDE_DEPTH =
             new ThreadLocal<>();
 
@@ -60,11 +44,9 @@ public final class MainHook implements IXposedHookLoadPackage {
         }
 
         /*
-         * Central gate override.
-         *
-         * IMPORTANT:
-         * isMiuiLauncher() still returns POCO's original value everywhere
-         * else in the launcher.
+         * Do not globally turn POCO Launcher into MIUI Launcher.
+         * isMiuiLauncher() is overridden only inside explicitly marked
+         * execution windows.
          */
         XposedHelpers.findAndHookMethod(
                 buildConfigUtilsClass,
@@ -79,21 +61,34 @@ public final class MainHook implements IXposedHookLoadPackage {
                 }
         );
 
+        // Stable fix: large-folder dark-mode background.
         installLargeFolderDarkModeFix(lpparam.classLoader);
-        installAdvancedMaterialBlurFix(lpparam.classLoader);
+
+        /*
+         * Advanced Material / Blur experimental fix is intentionally disabled.
+         *
+         * Testing showed that merely unlocking BlurUtilities.isBlurSupported()
+         * can make some Advanced Material surfaces become black instead of
+         * receiving the expected material blur.
+         *
+         * Keep the implementation below for further investigation, but do not
+         * install it until the actual Hyper Material / BottomSheet apply path
+         * has been identified.
+         */
+        // installAdvancedMaterialBlurFix(lpparam.classLoader);
 
         log("hook installation finished");
     }
 
     /**
-     * Fix 1
+     * Fix 1: Large Folder Dark Mode
      *
-     * POCO has the dark large-folder resources, but the upstream constructor
-     * additionally checks BuildConfigUtils.isMiuiLauncher().
+     * POCO contains the same dark large-folder resources, but the upstream
+     * drawable constructor additionally gates them behind isMiuiLauncher().
      *
-     * We temporarily satisfy that gate only while this drawable is being
-     * constructed, so the original launcher code can choose its own dark
-     * colors/stroke/animation resources.
+     * Only while the drawable is being constructed do we let that single
+     * launcher-type check pass. All other POCO launcher-type checks keep
+     * their original behavior.
      */
     private static void installLargeFolderDarkModeFix(ClassLoader classLoader) {
         Class<?> backgroundClass = XposedHelpers.findClassIfExists(
@@ -125,21 +120,19 @@ public final class MainHook implements IXposedHookLoadPackage {
     }
 
     /**
-     * Fix 2
+     * Experimental Fix 2: Advanced Material / Blur
      *
-     * BlurUtilities.isBlurSupported() in the POCO build reaches an
-     * isMiuiLauncher() gate. That makes the method report no blur support
-     * even when the device/system blur capability itself is available.
+     * CURRENTLY NOT INSTALLED.
      *
-     * Rather than replacing isBlurSupported() with a hardcoded true, we let
-     * the ORIGINAL method execute and only satisfy isMiuiLauncher() while it
-     * runs. This preserves all of Xiaomi's other checks, such as device/system
-     * blur support and whether blur is actually enabled.
+     * This implementation only removes the POCO launcher-type gate while
+     * Xiaomi's original BlurUtilities.isBlurSupported() executes.
      *
-     * This is intentionally safer than:
-     *   - globally replacing isMiuiLauncher() with true, or
-     *   - replacing isBlurSupported() with true.
+     * It is retained for research, but enabling it currently causes some
+     * Advanced Material surfaces to render black because the lower-level
+     * Hyper Material / BottomSheet blur application path still needs to be
+     * identified and matched with the system launcher.
      */
+    @SuppressWarnings("unused")
     private static void installAdvancedMaterialBlurFix(ClassLoader classLoader) {
         Class<?> blurUtilitiesClass = XposedHelpers.findClassIfExists(
                 BLUR_UTILITIES,

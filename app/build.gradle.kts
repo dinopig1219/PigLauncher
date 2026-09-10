@@ -38,8 +38,6 @@ android {
         release {
             isMinifyEnabled = false
 
-            // GitHub Actions decodes app/release.keystore before Gradle runs.
-            // Without the file, local release builds remain unsigned.
             if (file("release.keystore").exists()) {
                 signingConfig = signingConfigs.getByName("release")
             }
@@ -57,6 +55,5 @@ android {
 }
 
 dependencies {
-    // Compile-only Xposed stubs; LSPosed supplies the real API at runtime.
     compileOnly(project(":xposed-api-stubs"))
 }
