@@ -9,184 +9,208 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 public final class MainHook implements IXposedHookLoadPackage {
 
     private static final String TAG = "PigLauncher";
-    private static final String TARGET_PACKAGE = "com.mi.android.globallauncher";
 
+    /**
+     * POCO Launcher package
+     */
+    private static final String TARGET_PACKAGE =
+            "com.mi.android.globallauncher";
+
+    /**
+     * Large folder background Drawable
+     */
     private static final String LARGE_FOLDER_BACKGROUND =
             "com.miui.home.folder.FolderIcon4x4NormalBackgroundDrawable";
 
-    private static final String BLUR_UTILITIES =
-            "com.miui.home.common.utils.BlurUtilities";
-
+    /**
+     * Launcher build type utility
+     */
     private static final String BUILD_CONFIG_UTILS =
             "com.miui.home.common.utils.BuildConfigUtils";
 
-    private static final ThreadLocal<Integer> MIUI_LAUNCHER_OVERRIDE_DEPTH =
-            new ThreadLocal<>();
+    /**
+     * Only marks the period when a large-folder background
+     * Drawable is being constructed.
+     *
+     * isMiuiLauncher() will only be overridden during this period.
+     */
+    private static final ThreadLocal<Integer>
+            LARGE_FOLDER_CONSTRUCTOR_DEPTH = new ThreadLocal<>();
 
     @Override
-    public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam)
-            throws Throwable {
+    public void handleLoadPackage(
+            XC_LoadPackage.LoadPackageParam lpparam
+    ) throws Throwable {
 
+        /*
+         * Only hook POCO Launcher.
+         */
         if (!TARGET_PACKAGE.equals(lpparam.packageName)) {
             return;
         }
 
-        log("loaded " + lpparam.packageName);
+        log("Loaded package: " + lpparam.packageName);
 
-        Class<?> buildConfigUtilsClass = XposedHelpers.findClassIfExists(
-                BUILD_CONFIG_UTILS,
-                lpparam.classLoader
-        );
+        final ClassLoader classLoader = lpparam.classLoader;
 
-        if (buildConfigUtilsClass == null) {
-            log("BuildConfigUtils not found; no fixes can be installed");
+        /*
+         * Find large-folder background Drawable.
+         */
+        final Class<?> folderBackgroundClass =
+                XposedHelpers.findClassIfExists(
+                        LARGE_FOLDER_BACKGROUND,
+                        classLoader
+                );
+
+        if (folderBackgroundClass == null) {
+            log(
+                    "Class not found: "
+                            + LARGE_FOLDER_BACKGROUND
+            );
             return;
         }
 
         /*
-         * Do not globally turn POCO Launcher into MIUI Launcher.
-         * isMiuiLauncher() is overridden only inside explicitly marked
-         * execution windows.
+         * Find BuildConfigUtils.
+         */
+        final Class<?> buildConfigUtilsClass =
+                XposedHelpers.findClassIfExists(
+                        BUILD_CONFIG_UTILS,
+                        classLoader
+                );
+
+        if (buildConfigUtilsClass == null) {
+            log(
+                    "Class not found: "
+                            + BUILD_CONFIG_UTILS
+            );
+            return;
+        }
+
+        /*
+         * ---------------------------------------------------------
+         * Fix 1:
+         * POCO Large Folder Dark Mode
+         * ---------------------------------------------------------
+         *
+         * POCO Launcher already contains the dark folder resources,
+         * but the original launcher code additionally checks:
+         *
+         *     BuildConfigUtils.isMiuiLauncher()
+         *
+         * POCO normally returns false.
+         *
+         * We DO NOT globally change isMiuiLauncher().
+         *
+         * Instead, only while
+         *
+         * FolderIcon4x4NormalBackgroundDrawable
+         *
+         * is being constructed, we temporarily allow that check
+         * to return true.
+         */
+
+        XposedBridge.hookAllConstructors(
+                folderBackgroundClass,
+                new XC_MethodHook() {
+
+                    @Override
+                    protected void beforeHookedMethod(
+                            MethodHookParam param
+                    ) {
+
+                        int depth = getDepth();
+
+                        LARGE_FOLDER_CONSTRUCTOR_DEPTH.set(
+                                depth + 1
+                        );
+                    }
+
+                    @Override
+                    protected void afterHookedMethod(
+                            MethodHookParam param
+                    ) {
+
+                        int depth = getDepth() - 1;
+
+                        if (depth <= 0) {
+
+                            LARGE_FOLDER_CONSTRUCTOR_DEPTH.remove();
+
+                        } else {
+
+                            LARGE_FOLDER_CONSTRUCTOR_DEPTH.set(
+                                    depth
+                            );
+                        }
+                    }
+                }
+        );
+
+        /*
+         * ---------------------------------------------------------
+         * Local isMiuiLauncher() override
+         * ---------------------------------------------------------
+         *
+         * Outside the large-folder constructor:
+         *
+         *     isMiuiLauncher() = original POCO result
+         *
+         * Inside the large-folder constructor:
+         *
+         *     isMiuiLauncher() = true
          */
         XposedHelpers.findAndHookMethod(
                 buildConfigUtilsClass,
                 "isMiuiLauncher",
                 new XC_MethodHook() {
+
                     @Override
-                    protected void beforeHookedMethod(MethodHookParam param) {
-                        if (getOverrideDepth() > 0) {
-                            param.setResult(Boolean.TRUE);
+                    protected void beforeHookedMethod(
+                            MethodHookParam param
+                    ) {
+
+                        if (getDepth() > 0) {
+
+                            param.setResult(
+                                    Boolean.TRUE
+                            );
+
+                            log(
+                                    "Large folder: "
+                                            + "temporary "
+                                            + "isMiuiLauncher=true"
+                            );
                         }
                     }
                 }
         );
 
-        // Stable fix: large-folder dark-mode background.
-        installLargeFolderDarkModeFix(lpparam.classLoader);
-
-        /*
-         * Advanced Material / Blur experimental fix is intentionally disabled.
-         *
-         * Testing showed that merely unlocking BlurUtilities.isBlurSupported()
-         * can make some Advanced Material surfaces become black instead of
-         * receiving the expected material blur.
-         *
-         * Keep the implementation below for further investigation, but do not
-         * install it until the actual Hyper Material / BottomSheet apply path
-         * has been identified.
-         */
-        // installAdvancedMaterialBlurFix(lpparam.classLoader);
-
-        log("hook installation finished");
+        log(
+                "Large Folder Dark Mode fix installed successfully"
+        );
     }
 
     /**
-     * Fix 1: Large Folder Dark Mode
-     *
-     * POCO contains the same dark large-folder resources, but the upstream
-     * drawable constructor additionally gates them behind isMiuiLauncher().
-     *
-     * Only while the drawable is being constructed do we let that single
-     * launcher-type check pass. All other POCO launcher-type checks keep
-     * their original behavior.
+     * Current nesting depth of the large-folder constructor.
      */
-    private static void installLargeFolderDarkModeFix(ClassLoader classLoader) {
-        Class<?> backgroundClass = XposedHelpers.findClassIfExists(
-                LARGE_FOLDER_BACKGROUND,
-                classLoader
-        );
+    private static int getDepth() {
 
-        if (backgroundClass == null) {
-            log("Fix 1 skipped: class not found: " + LARGE_FOLDER_BACKGROUND);
-            return;
-        }
+        Integer depth =
+                LARGE_FOLDER_CONSTRUCTOR_DEPTH.get();
 
-        XposedBridge.hookAllConstructors(
-                backgroundClass,
-                new XC_MethodHook() {
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) {
-                        enterMiuiLauncherOverride();
-                    }
-
-                    @Override
-                    protected void afterHookedMethod(MethodHookParam param) {
-                        exitMiuiLauncherOverride();
-                    }
-                }
-        );
-
-        log("Fix 1 installed: large folder dark-mode background");
+        return depth == null
+                ? 0
+                : depth;
     }
 
     /**
-     * Experimental Fix 2: Advanced Material / Blur
-     *
-     * CURRENTLY NOT INSTALLED.
-     *
-     * This implementation only removes the POCO launcher-type gate while
-     * Xiaomi's original BlurUtilities.isBlurSupported() executes.
-     *
-     * It is retained for research, but enabling it currently causes some
-     * Advanced Material surfaces to render black because the lower-level
-     * Hyper Material / BottomSheet blur application path still needs to be
-     * identified and matched with the system launcher.
+     * LSPosed log helper.
      */
-    @SuppressWarnings("unused")
-    private static void installAdvancedMaterialBlurFix(ClassLoader classLoader) {
-        Class<?> blurUtilitiesClass = XposedHelpers.findClassIfExists(
-                BLUR_UTILITIES,
-                classLoader
-        );
-
-        if (blurUtilitiesClass == null) {
-            log("Fix 2 skipped: class not found: " + BLUR_UTILITIES);
-            return;
-        }
-
-        try {
-            XposedHelpers.findAndHookMethod(
-                    blurUtilitiesClass,
-                    "isBlurSupported",
-                    new XC_MethodHook() {
-                        @Override
-                        protected void beforeHookedMethod(MethodHookParam param) {
-                            enterMiuiLauncherOverride();
-                        }
-
-                        @Override
-                        protected void afterHookedMethod(MethodHookParam param) {
-                            exitMiuiLauncherOverride();
-                        }
-                    }
-            );
-
-            log("Fix 2 installed: Advanced Material / blur support");
-        } catch (Throwable t) {
-            log("Fix 2 failed to hook BlurUtilities.isBlurSupported(): " + t);
-        }
-    }
-
-    private static void enterMiuiLauncherOverride() {
-        MIUI_LAUNCHER_OVERRIDE_DEPTH.set(getOverrideDepth() + 1);
-    }
-
-    private static void exitMiuiLauncherOverride() {
-        int depth = getOverrideDepth() - 1;
-
-        if (depth <= 0) {
-            MIUI_LAUNCHER_OVERRIDE_DEPTH.remove();
-        } else {
-            MIUI_LAUNCHER_OVERRIDE_DEPTH.set(depth);
-        }
-    }
-
-    private static int getOverrideDepth() {
-        Integer depth = MIUI_LAUNCHER_OVERRIDE_DEPTH.get();
-        return depth == null ? 0 : depth;
-    }
-
     private static void log(String message) {
-        XposedBridge.log(TAG + ": " + message);
+
+        XposedBridge.log(
+                TAG + ": " + message
+        );
     }
 }
