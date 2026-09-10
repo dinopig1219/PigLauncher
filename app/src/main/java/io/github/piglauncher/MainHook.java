@@ -1,6 +1,8 @@
 package io.github.piglauncher;
 
 import android.content.Context;
+import android.graphics.Canvas;
+import android.view.View;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -20,6 +22,12 @@ public final class MainHook implements IXposedHookLoadPackage {
 
     private static final String SMALL_FOLDER =
             "com.miui.home.folder.FolderIcon1x1";
+
+    private static final String FOLDER_INFO =
+            "com.miui.home.model.api.IFolderInfo";
+
+    private static final String FOLDER =
+            "com.miui.home.folder.api.IFolder";
 
     private static final String BLUR_UTILITIES =
             "com.miui.home.common.utils.BlurUtilities";
@@ -91,16 +99,62 @@ public final class MainHook implements IXposedHookLoadPackage {
                 classLoader
         );
 
-        if (smallFolderClass != null) {
+        if (smallFolderClass == null) {
+            return;
+        }
+
+        try {
+            XposedHelpers.findAndHookMethod(
+                    smallFolderClass,
+                    "refreshBackground",
+                    createGateHook()
+            );
+        } catch (Throwable ignored) {
+        }
+
+        try {
+            XposedHelpers.findAndHookMethod(
+                    smallFolderClass,
+                    "drawChild",
+                    Canvas.class,
+                    View.class,
+                    long.class,
+                    createGateHook()
+            );
+        } catch (Throwable ignored) {
+        }
+
+        Class<?> folderInfoClass = XposedHelpers.findClassIfExists(
+                FOLDER_INFO,
+                classLoader
+        );
+
+        Class<?> folderClass = XposedHelpers.findClassIfExists(
+                FOLDER,
+                classLoader
+        );
+
+        if (folderInfoClass != null && folderClass != null) {
             try {
                 XposedHelpers.findAndHookMethod(
                         smallFolderClass,
-                        "updateFolderIconBg$lambda$2",
-                        smallFolderClass,
+                        "setup",
+                        folderInfoClass,
+                        folderClass,
                         createGateHook()
                 );
             } catch (Throwable ignored) {
             }
+        }
+
+        try {
+            XposedHelpers.findAndHookMethod(
+                    smallFolderClass,
+                    "updateFolderIconBg$lambda$2",
+                    smallFolderClass,
+                    createGateHook()
+            );
+        } catch (Throwable ignored) {
         }
     }
 
