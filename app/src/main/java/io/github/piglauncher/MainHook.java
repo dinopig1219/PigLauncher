@@ -20,31 +20,12 @@ public final class MainHook implements IXposedHookLoadPackage {
     private static final String TARGET_PACKAGE =
             "com.mi.android.globallauncher";
 
-    /*
-     * Existing working Large Folder Dark Mode fix.
-     * Keep this logic unchanged.
-     */
     private static final String LARGE_FOLDER_BACKGROUND =
             "com.miui.home.folder.FolderIcon4x4NormalBackgroundDrawable";
 
     private static final String BUILD_CONFIG_UTILS =
             "com.miui.home.common.utils.BuildConfigUtils";
 
-    private static final ThreadLocal<Integer> MIUI_LAUNCHER_OVERRIDE_DEPTH =
-            new ThreadLocal<>();
-
-    /*
-     * Advanced Textures diagnostics only.
-     *
-     * IMPORTANT:
-     * These hooks only observe calls/return values.
-     * They DO NOT call setResult() and DO NOT change launcher behavior.
-     *
-     * Some Xiaomi internal classes/methods still contain the word
-     * "Material" in their real class names. We keep those exact internal
-     * names because that is what exists inside the APK; the feature is
-     * referred to as Advanced Textures in PigLauncher.
-     */
     private static final String BLUR_UTILITIES =
             "com.miui.home.common.utils.BlurUtilities";
 
@@ -62,6 +43,9 @@ public final class MainHook implements IXposedHookLoadPackage {
 
     private static final String BOTTOM_SHEET_VIEW =
             "miuix.bottomsheet.BottomSheetView";
+
+    private static final ThreadLocal<Integer> MIUI_LAUNCHER_OVERRIDE_DEPTH =
+            new ThreadLocal<>();
 
     private static final AtomicLong AT_LOG_SEQUENCE =
             new AtomicLong(0);
@@ -84,16 +68,10 @@ public final class MainHook implements IXposedHookLoadPackage {
                 );
 
         if (buildConfigUtilsClass == null) {
-            log("BuildConfigUtils not found; no fixes can be installed");
+            log("BuildConfigUtils not found");
             return;
         }
 
-        /*
-         * Existing local gate used by the working large-folder fix.
-         *
-         * Outside an explicitly marked execution window,
-         * POCO receives its original isMiuiLauncher() result.
-         */
         XposedHelpers.findAndHookMethod(
                 buildConfigUtilsClass,
                 "isMiuiLauncher",
@@ -109,31 +87,20 @@ public final class MainHook implements IXposedHookLoadPackage {
                 }
         );
 
-        /*
-         * Keep the working folder fix enabled.
-         */
         installLargeFolderDarkModeFix(
                 lpparam.classLoader
         );
 
-        /*
-         * Advanced Textures:
-         *
-         * NO FIX is enabled here.
-         * Only diagnostic hooks are installed.
-         */
+        installAdvancedTexturesGateProbe(
+                lpparam.classLoader
+        );
+
         installAdvancedTexturesDiagnostics(
                 lpparam.classLoader
         );
 
         log("hook installation finished");
     }
-
-    /*
-     * ============================================================
-     * Large Folder Dark Mode Fix
-     * ============================================================
-     */
 
     private static void installLargeFolderDarkModeFix(
             ClassLoader classLoader
@@ -146,17 +113,13 @@ public final class MainHook implements IXposedHookLoadPackage {
                 );
 
         if (backgroundClass == null) {
-            log(
-                    "Large Folder fix skipped: class not found: "
-                            + LARGE_FOLDER_BACKGROUND
-            );
+            log("Large Folder class not found");
             return;
         }
 
         XposedBridge.hookAllConstructors(
                 backgroundClass,
                 new XC_MethodHook() {
-
                     @Override
                     protected void beforeHookedMethod(
                             MethodHookParam param
@@ -173,24 +136,46 @@ public final class MainHook implements IXposedHookLoadPackage {
                 }
         );
 
-        log(
-                "Large Folder Dark Mode fix installed"
-        );
+        log("Large Folder Dark Mode fix installed");
     }
 
-    /*
-     * ============================================================
-     * Advanced Textures Diagnostics
-     * ============================================================
-     *
-     * OBSERVATION ONLY:
-     * - no setResult()
-     * - no parameter replacement
-     * - no forced blur
-     * - no forced feature state
-     *
-     * We want to see where the OFF and ON paths differ.
-     */
+    private static void installAdvancedTexturesGateProbe(
+            ClassLoader classLoader
+    ) {
+
+        Class<?> blurUtilitiesClass =
+                XposedHelpers.findClassIfExists(
+                        BLUR_UTILITIES,
+                        classLoader
+                );
+
+        if (blurUtilitiesClass == null) {
+            atLog("Advanced Textures gate class missing");
+            return;
+        }
+
+        XposedHelpers.findAndHookMethod(
+                blurUtilitiesClass,
+                "isBlurSupported",
+                new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(
+                            MethodHookParam param
+                    ) {
+                        enterMiuiLauncherOverride();
+                    }
+
+                    @Override
+                    protected void afterHookedMethod(
+                            MethodHookParam param
+                    ) {
+                        exitMiuiLauncherOverride();
+                    }
+                }
+        );
+
+        atLog("Advanced Textures gate probe installed");
+    }
 
     private static void installAdvancedTexturesDiagnostics(
             ClassLoader classLoader
@@ -198,9 +183,6 @@ public final class MainHook implements IXposedHookLoadPackage {
 
         atLog("Installing Advanced Textures diagnostics");
 
-        /*
-         * Launcher-side blur support / entry gates.
-         */
         Class<?> blurUtilities =
                 findDiagnosticClass(
                         BLUR_UTILITIES,
@@ -229,9 +211,6 @@ public final class MainHook implements IXposedHookLoadPackage {
             );
         }
 
-        /*
-         * Launcher wrapper around the Hyper/Advanced Textures path.
-         */
         Class<?> miuixMaterialBlurUtilities =
                 findDiagnosticClass(
                         MIUIX_MATERIAL_BLUR_UTILITIES,
@@ -259,9 +238,6 @@ public final class MainHook implements IXposedHookLoadPackage {
             );
         }
 
-        /*
-         * Xiaomi/MIUIX Advanced Textures feature gate.
-         */
         Class<?> hyperMaterialUtils =
                 findDiagnosticClass(
                         HYPER_MATERIAL_UTILS,
@@ -286,9 +262,6 @@ public final class MainHook implements IXposedHookLoadPackage {
             );
         }
 
-        /*
-         * Actual low-level blur calls.
-         */
         Class<?> miuiBlurUtils =
                 findDiagnosticClass(
                         MIUI_BLUR_UTILS,
@@ -345,9 +318,6 @@ public final class MainHook implements IXposedHookLoadPackage {
             );
         }
 
-        /*
-         * MIUIX helper that owns the blur state of a UI surface.
-         */
         Class<?> miuiBlurUiHelper =
                 findDiagnosticClass(
                         MIUI_BLUR_UI_HELPER,
@@ -406,9 +376,6 @@ public final class MainHook implements IXposedHookLoadPackage {
             );
         }
 
-        /*
-         * The BottomSheet shown by pages such as "Effects".
-         */
         Class<?> bottomSheetView =
                 findDiagnosticClass(
                         BOTTOM_SHEET_VIEW,
@@ -455,16 +422,9 @@ public final class MainHook implements IXposedHookLoadPackage {
             );
         }
 
-        atLog(
-                "Advanced Textures diagnostics installed; "
-                        + "no Advanced Textures behavior has been modified"
-        );
+        atLog("Advanced Textures diagnostics installed");
     }
 
-    /*
-     * Find one diagnostic class without crashing the launcher if Xiaomi
-     * renames/removes it in another build.
-     */
     private static Class<?> findDiagnosticClass(
             String className,
             ClassLoader classLoader
@@ -477,24 +437,14 @@ public final class MainHook implements IXposedHookLoadPackage {
                 );
 
         if (clazz == null) {
-            atLog(
-                    "CLASS MISSING: " + className
-            );
+            atLog("CLASS MISSING: " + className);
         } else {
-            atLog(
-                    "CLASS OK: " + className
-            );
+            atLog("CLASS OK: " + className);
         }
 
         return clazz;
     }
 
-    /*
-     * Generic exact-method tracer.
-     *
-     * parameterTypes are Android/Java parameter classes only.
-     * The callback does not change result/arguments.
-     */
     private static void traceMethod(
             final Class<?> clazz,
             final String methodName,
@@ -510,19 +460,10 @@ public final class MainHook implements IXposedHookLoadPackage {
 
             hookArguments[parameterTypes.length] =
                     new XC_MethodHook() {
-
                         @Override
                         protected void afterHookedMethod(
                                 MethodHookParam param
                         ) {
-
-                            String owner =
-                                    clazz.getName();
-
-                            String arguments =
-                                    formatArguments(
-                                            param.args
-                                    );
 
                             String result;
 
@@ -533,20 +474,21 @@ public final class MainHook implements IXposedHookLoadPackage {
                                         );
                             } catch (Throwable throwable) {
                                 result =
-                                        "<result unavailable: "
+                                        "<unavailable:"
                                                 + throwable.getClass()
                                                 .getSimpleName()
                                                 + ">";
                             }
 
                             atLog(
-                                    owner
+                                    clazz.getName()
                                             + "#"
                                             + methodName
                                             + "("
-                                            + arguments
-                                            + ")"
-                                            + " => "
+                                            + formatArguments(
+                                                    param.args
+                                            )
+                                            + ") => "
                                             + result
                             );
                         }
@@ -566,7 +508,6 @@ public final class MainHook implements IXposedHookLoadPackage {
             );
 
         } catch (Throwable throwable) {
-
             atLog(
                     "HOOK FAILED: "
                             + clazz.getName()
@@ -590,7 +531,6 @@ public final class MainHook implements IXposedHookLoadPackage {
                 new StringBuilder();
 
         for (int i = 0; i < args.length; i++) {
-
             if (i > 0) {
                 builder.append(", ");
             }
@@ -615,67 +555,27 @@ public final class MainHook implements IXposedHookLoadPackage {
                 || value instanceof Number
                 || value instanceof String
                 || value instanceof Character) {
-
             return String.valueOf(value);
         }
 
         if (value instanceof View) {
-
             View view =
                     (View) value;
 
-            StringBuilder builder =
-                    new StringBuilder();
-
-            builder.append(
-                    view.getClass().getName()
-            );
-
-            builder.append("@");
-
-            builder.append(
-                    Integer.toHexString(
+            return view.getClass().getName()
+                    + "@"
+                    + Integer.toHexString(
                             System.identityHashCode(view)
                     )
-            );
-
-            try {
-                builder.append(
-                        "{attached="
-                );
-
-                builder.append(
-                        view.isAttachedToWindow()
-                );
-
-                builder.append(
-                        ",visibility="
-                );
-
-                builder.append(
-                        view.getVisibility()
-                );
-
-                builder.append(
-                        ",size="
-                );
-
-                builder.append(
-                        view.getWidth()
-                );
-
-                builder.append("x");
-
-                builder.append(
-                        view.getHeight()
-                );
-
-                builder.append("}");
-            } catch (Throwable ignored) {
-                // Diagnostic formatting must never break the launcher.
-            }
-
-            return builder.toString();
+                    + "{attached="
+                    + view.isAttachedToWindow()
+                    + ",visibility="
+                    + view.getVisibility()
+                    + ",size="
+                    + view.getWidth()
+                    + "x"
+                    + view.getHeight()
+                    + "}";
         }
 
         if (value instanceof Context) {
@@ -686,7 +586,6 @@ public final class MainHook implements IXposedHookLoadPackage {
                 value.getClass();
 
         if (valueClass.isArray()) {
-
             if (value instanceof int[]) {
                 return Arrays.toString(
                         (int[]) value
@@ -715,12 +614,6 @@ public final class MainHook implements IXposedHookLoadPackage {
                 );
     }
 
-    /*
-     * ============================================================
-     * Existing folder-fix scope helpers
-     * ============================================================
-     */
-
     private static void enterMiuiLauncherOverride() {
         MIUI_LAUNCHER_OVERRIDE_DEPTH.set(
                 getOverrideDepth() + 1
@@ -728,7 +621,6 @@ public final class MainHook implements IXposedHookLoadPackage {
     }
 
     private static void exitMiuiLauncherOverride() {
-
         int depth =
                 getOverrideDepth() - 1;
 
@@ -742,7 +634,6 @@ public final class MainHook implements IXposedHookLoadPackage {
     }
 
     private static int getOverrideDepth() {
-
         Integer depth =
                 MIUI_LAUNCHER_OVERRIDE_DEPTH.get();
 
@@ -762,7 +653,6 @@ public final class MainHook implements IXposedHookLoadPackage {
     private static void atLog(
             String message
     ) {
-
         long sequence =
                 AT_LOG_SEQUENCE.incrementAndGet();
 
