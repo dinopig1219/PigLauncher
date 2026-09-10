@@ -23,6 +23,9 @@ public final class MainHook implements IXposedHookLoadPackage {
     private static final String SMALL_FOLDER =
             "com.miui.home.folder.FolderIcon1x1";
 
+    private static final String FOLDER_SHEET =
+            "com.miui.home.folder.FolderSheet";
+
     private static final String FOLDER_INFO =
             "com.miui.home.model.api.IFolderInfo";
 
@@ -35,6 +38,9 @@ public final class MainHook implements IXposedHookLoadPackage {
     private static final String BUILD_CONFIG_UTILS =
             "com.miui.home.common.utils.BuildConfigUtils";
 
+    private static final String DEVICE_CONFIGS =
+            "com.miui.home.common.device.DeviceConfigs";
+
     private static final String VIEW_ROOT_IMPL_STUB_IMPL =
             "android.view.ViewRootImplStubImpl";
 
@@ -45,6 +51,12 @@ public final class MainHook implements IXposedHookLoadPackage {
             "android.cameracovered.MiuiCameraCoveredManager";
 
     private static final ThreadLocal<Integer> MIUI_LAUNCHER_OVERRIDE_DEPTH =
+            new ThreadLocal<>();
+
+    private static final ThreadLocal<Integer> SMALL_FOLDER_APPEARANCE_DEPTH =
+            new ThreadLocal<>();
+
+    private static final ThreadLocal<Integer> SMALL_FOLDER_BLUR_GATE_DEPTH =
             new ThreadLocal<>();
 
     @Override
@@ -60,7 +72,12 @@ public final class MainHook implements IXposedHookLoadPackage {
                 lpparam.classLoader
         );
 
-        if (buildConfigUtilsClass == null) {
+        Class<?> deviceConfigsClass = XposedHelpers.findClassIfExists(
+                DEVICE_CONFIGS,
+                lpparam.classLoader
+        );
+
+        if (buildConfigUtilsClass == null || deviceConfigsClass == null) {
             return;
         }
 
@@ -70,7 +87,36 @@ public final class MainHook implements IXposedHookLoadPackage {
                 new XC_MethodHook() {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) {
-                        if (getOverrideDepth() > 0) {
+                        if (getMiuiLauncherOverrideDepth() > 0) {
+                            param.setResult(Boolean.TRUE);
+                        }
+                    }
+                }
+        );
+
+        XposedHelpers.findAndHookMethod(
+                deviceConfigsClass,
+                "isDefaultMiuiIcon",
+                new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) {
+                        if (getSmallFolderAppearanceDepth() > 0) {
+                            param.setResult(Boolean.TRUE);
+                        }
+                    }
+                }
+        );
+
+        XposedHelpers.findAndHookMethod(
+                deviceConfigsClass,
+                "isUseDefaultFolderIcon",
+                boolean.class,
+                new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) {
+                        if (getSmallFolderBlurGateDepth() > 0
+                                && param.args.length > 0
+                                && Boolean.TRUE.equals(param.args[0])) {
                             param.setResult(Boolean.TRUE);
                         }
                     }
@@ -90,7 +136,7 @@ public final class MainHook implements IXposedHookLoadPackage {
         if (largeFolderBackgroundClass != null) {
             XposedBridge.hookAllConstructors(
                     largeFolderBackgroundClass,
-                    createGateHook()
+                    createMiuiLauncherGateHook()
             );
         }
 
@@ -99,62 +145,109 @@ public final class MainHook implements IXposedHookLoadPackage {
                 classLoader
         );
 
-        if (smallFolderClass == null) {
-            return;
-        }
-
-        try {
-            XposedHelpers.findAndHookMethod(
-                    smallFolderClass,
-                    "refreshBackground",
-                    createGateHook()
-            );
-        } catch (Throwable ignored) {
-        }
-
-        try {
-            XposedHelpers.findAndHookMethod(
-                    smallFolderClass,
-                    "drawChild",
-                    Canvas.class,
-                    View.class,
-                    long.class,
-                    createGateHook()
-            );
-        } catch (Throwable ignored) {
-        }
-
-        Class<?> folderInfoClass = XposedHelpers.findClassIfExists(
-                FOLDER_INFO,
-                classLoader
-        );
-
-        Class<?> folderClass = XposedHelpers.findClassIfExists(
-                FOLDER,
-                classLoader
-        );
-
-        if (folderInfoClass != null && folderClass != null) {
+        if (smallFolderClass != null) {
             try {
                 XposedHelpers.findAndHookMethod(
                         smallFolderClass,
-                        "setup",
-                        folderInfoClass,
-                        folderClass,
-                        createGateHook()
+                        "refreshBackground",
+                        createSmallFolderAppearanceHook()
+                );
+            } catch (Throwable ignored) {
+            }
+
+            try {
+                XposedHelpers.findAndHookMethod(
+                        smallFolderClass,
+                        "drawChild",
+                        Canvas.class,
+                        View.class,
+                        long.class,
+                        createSmallFolderAppearanceHook()
+                );
+            } catch (Throwable ignored) {
+            }
+
+            Class<?> folderInfoClass = XposedHelpers.findClassIfExists(
+                    FOLDER_INFO,
+                    classLoader
+            );
+
+            Class<?> folderClass = XposedHelpers.findClassIfExists(
+                    FOLDER,
+                    classLoader
+            );
+
+            if (folderInfoClass != null && folderClass != null) {
+                try {
+                    XposedHelpers.findAndHookMethod(
+                            smallFolderClass,
+                            "setup",
+                            folderInfoClass,
+                            folderClass,
+                            createSmallFolderAppearanceHook()
+                    );
+                } catch (Throwable ignored) {
+                }
+            }
+
+            try {
+                XposedHelpers.findAndHookMethod(
+                        smallFolderClass,
+                        "updateFolderIconBg$lambda$2",
+                        smallFolderClass,
+                        createSmallFolderAppearanceHook()
                 );
             } catch (Throwable ignored) {
             }
         }
 
-        try {
-            XposedHelpers.findAndHookMethod(
-                    smallFolderClass,
-                    "updateFolderIconBg$lambda$2",
-                    smallFolderClass,
-                    createGateHook()
-            );
-        } catch (Throwable ignored) {
+        Class<?> blurUtilitiesClass = XposedHelpers.findClassIfExists(
+                BLUR_UTILITIES,
+                classLoader
+        );
+
+        if (blurUtilitiesClass != null) {
+            try {
+                XposedHelpers.findAndHookMethod(
+                        blurUtilitiesClass,
+                        "isFolderBlurSupported",
+                        boolean.class,
+                        new XC_MethodHook() {
+                            @Override
+                            protected void beforeHookedMethod(MethodHookParam param) {
+                                if (param.args.length > 0
+                                        && Boolean.TRUE.equals(param.args[0])) {
+                                    enterSmallFolderBlurGate();
+                                }
+                            }
+
+                            @Override
+                            protected void afterHookedMethod(MethodHookParam param) {
+                                if (param.args.length > 0
+                                        && Boolean.TRUE.equals(param.args[0])) {
+                                    exitSmallFolderBlurGate();
+                                }
+                            }
+                        }
+                );
+            } catch (Throwable ignored) {
+            }
+        }
+
+        Class<?> folderSheetClass = XposedHelpers.findClassIfExists(
+                FOLDER_SHEET,
+                classLoader
+        );
+
+        if (folderSheetClass != null) {
+            try {
+                XposedHelpers.findAndHookMethod(
+                        folderSheetClass,
+                        "getFolderPickerSelectDefaultFolderBg",
+                        createMiuiLauncherGateHook()
+                );
+            } catch (Throwable ignored) {
+            }
         }
     }
 
@@ -169,7 +262,7 @@ public final class MainHook implements IXposedHookLoadPackage {
                 XposedHelpers.findAndHookMethod(
                         blurUtilitiesClass,
                         "isBlurSupported",
-                        createGateHook()
+                        createMiuiLauncherGateHook()
                 );
             } catch (Throwable ignored) {
             }
@@ -192,7 +285,7 @@ public final class MainHook implements IXposedHookLoadPackage {
         );
     }
 
-    private static XC_MethodHook createGateHook() {
+    private static XC_MethodHook createMiuiLauncherGateHook() {
         return new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) {
@@ -202,6 +295,22 @@ public final class MainHook implements IXposedHookLoadPackage {
             @Override
             protected void afterHookedMethod(MethodHookParam param) {
                 exitMiuiLauncherOverride();
+            }
+        };
+    }
+
+    private static XC_MethodHook createSmallFolderAppearanceHook() {
+        return new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) {
+                enterSmallFolderAppearance();
+                enterMiuiLauncherOverride();
+            }
+
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) {
+                exitMiuiLauncherOverride();
+                exitSmallFolderAppearance();
             }
         };
     }
@@ -297,12 +406,12 @@ public final class MainHook implements IXposedHookLoadPackage {
 
     private static void enterMiuiLauncherOverride() {
         MIUI_LAUNCHER_OVERRIDE_DEPTH.set(
-                getOverrideDepth() + 1
+                getMiuiLauncherOverrideDepth() + 1
         );
     }
 
     private static void exitMiuiLauncherOverride() {
-        int depth = getOverrideDepth() - 1;
+        int depth = getMiuiLauncherOverrideDepth() - 1;
 
         if (depth <= 0) {
             MIUI_LAUNCHER_OVERRIDE_DEPTH.remove();
@@ -311,8 +420,50 @@ public final class MainHook implements IXposedHookLoadPackage {
         }
     }
 
-    private static int getOverrideDepth() {
+    private static int getMiuiLauncherOverrideDepth() {
         Integer depth = MIUI_LAUNCHER_OVERRIDE_DEPTH.get();
+        return depth == null ? 0 : depth;
+    }
+
+    private static void enterSmallFolderAppearance() {
+        SMALL_FOLDER_APPEARANCE_DEPTH.set(
+                getSmallFolderAppearanceDepth() + 1
+        );
+    }
+
+    private static void exitSmallFolderAppearance() {
+        int depth = getSmallFolderAppearanceDepth() - 1;
+
+        if (depth <= 0) {
+            SMALL_FOLDER_APPEARANCE_DEPTH.remove();
+        } else {
+            SMALL_FOLDER_APPEARANCE_DEPTH.set(depth);
+        }
+    }
+
+    private static int getSmallFolderAppearanceDepth() {
+        Integer depth = SMALL_FOLDER_APPEARANCE_DEPTH.get();
+        return depth == null ? 0 : depth;
+    }
+
+    private static void enterSmallFolderBlurGate() {
+        SMALL_FOLDER_BLUR_GATE_DEPTH.set(
+                getSmallFolderBlurGateDepth() + 1
+        );
+    }
+
+    private static void exitSmallFolderBlurGate() {
+        int depth = getSmallFolderBlurGateDepth() - 1;
+
+        if (depth <= 0) {
+            SMALL_FOLDER_BLUR_GATE_DEPTH.remove();
+        } else {
+            SMALL_FOLDER_BLUR_GATE_DEPTH.set(depth);
+        }
+    }
+
+    private static int getSmallFolderBlurGateDepth() {
+        Integer depth = SMALL_FOLDER_BLUR_GATE_DEPTH.get();
         return depth == null ? 0 : depth;
     }
 }
