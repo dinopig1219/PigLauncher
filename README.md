@@ -30,22 +30,9 @@ Instead, it lets Xiaomi's original `isBlurSupported()` execute and temporarily s
 
 `com.mi.android.globallauncher`
 
-The initial implementation is based on POCO Launcher:
+The initial implementation is tested based on POCO Launcher:
 
 `RELEASE-6.01.05.2407-06081949`
-
-## GitHub Actions secrets
-
-Add these repository secrets:
-
-- `KEYSTORE_BASE64`
-- `KEYSTORE_PASSWORD`
-- `KEY_ALIAS`
-- `KEY_PASSWORD`
-- `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_CHAT_ID`
-
-Pushes to `main` build debug + signed release APKs. Tags are also uploaded to GitHub Releases, and the signed release APK is sent to the configured Telegram channel.
 
 ## LSPosed
 
