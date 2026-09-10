@@ -13,11 +13,13 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 public final class MainHook implements IXposedHookLoadPackage {
 
-    private static final String TAG = "PigLauncher";
     private static final String TARGET_PACKAGE = "com.mi.android.globallauncher";
 
     private static final String LARGE_FOLDER_BACKGROUND =
             "com.miui.home.folder.FolderIcon4x4NormalBackgroundDrawable";
+
+    private static final String SMALL_FOLDER =
+            "com.miui.home.folder.FolderIcon1x1";
 
     private static final String BLUR_UTILITIES =
             "com.miui.home.common.utils.BlurUtilities";
@@ -45,15 +47,12 @@ public final class MainHook implements IXposedHookLoadPackage {
             return;
         }
 
-        log("loaded " + lpparam.packageName);
-
         Class<?> buildConfigUtilsClass = XposedHelpers.findClassIfExists(
                 BUILD_CONFIG_UTILS,
                 lpparam.classLoader
         );
 
         if (buildConfigUtilsClass == null) {
-            log("BuildConfigUtils not found");
             return;
         }
 
@@ -70,39 +69,39 @@ public final class MainHook implements IXposedHookLoadPackage {
                 }
         );
 
-        installLargeFolderDarkModeFix(lpparam.classLoader);
+        installFolderDarkModeFix(lpparam.classLoader);
         installAdvancedTexturesFix(lpparam.classLoader);
-
-        log("hooks installed");
     }
 
-    private static void installLargeFolderDarkModeFix(ClassLoader classLoader) {
-        Class<?> backgroundClass = XposedHelpers.findClassIfExists(
+    private static void installFolderDarkModeFix(ClassLoader classLoader) {
+        Class<?> largeFolderBackgroundClass = XposedHelpers.findClassIfExists(
                 LARGE_FOLDER_BACKGROUND,
                 classLoader
         );
 
-        if (backgroundClass == null) {
-            log("Large Folder class not found");
-            return;
+        if (largeFolderBackgroundClass != null) {
+            XposedBridge.hookAllConstructors(
+                    largeFolderBackgroundClass,
+                    createGateHook()
+            );
         }
 
-        XposedBridge.hookAllConstructors(
-                backgroundClass,
-                new XC_MethodHook() {
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) {
-                        enterMiuiLauncherOverride();
-                    }
-
-                    @Override
-                    protected void afterHookedMethod(MethodHookParam param) {
-                        exitMiuiLauncherOverride();
-                    }
-                }
+        Class<?> smallFolderClass = XposedHelpers.findClassIfExists(
+                SMALL_FOLDER,
+                classLoader
         );
 
-        log("Large Folder Dark Mode fix installed");
+        if (smallFolderClass != null) {
+            try {
+                XposedHelpers.findAndHookMethod(
+                        smallFolderClass,
+                        "updateFolderIconBg$lambda$2",
+                        smallFolderClass,
+                        createGateHook()
+                );
+            } catch (Throwable ignored) {
+            }
+        }
     }
 
     private static void installAdvancedTexturesFix(ClassLoader classLoader) {
@@ -112,25 +111,14 @@ public final class MainHook implements IXposedHookLoadPackage {
         );
 
         if (blurUtilitiesClass != null) {
-            XposedHelpers.findAndHookMethod(
-                    blurUtilitiesClass,
-                    "isBlurSupported",
-                    new XC_MethodHook() {
-                        @Override
-                        protected void beforeHookedMethod(MethodHookParam param) {
-                            enterMiuiLauncherOverride();
-                        }
-
-                        @Override
-                        protected void afterHookedMethod(MethodHookParam param) {
-                            exitMiuiLauncherOverride();
-                        }
-                    }
-            );
-
-            log("Advanced Textures launcher gate fix installed");
-        } else {
-            log("BlurUtilities not found");
+            try {
+                XposedHelpers.findAndHookMethod(
+                        blurUtilitiesClass,
+                        "isBlurSupported",
+                        createGateHook()
+                );
+            } catch (Throwable ignored) {
+            }
         }
 
         hookPassWindowBlurFilter(
@@ -150,6 +138,20 @@ public final class MainHook implements IXposedHookLoadPackage {
         );
     }
 
+    private static XC_MethodHook createGateHook() {
+        return new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) {
+                enterMiuiLauncherOverride();
+            }
+
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) {
+                exitMiuiLauncherOverride();
+            }
+        };
+    }
+
     private static void hookPassWindowBlurFilter(
             String className,
             ClassLoader classLoader,
@@ -161,7 +163,6 @@ public final class MainHook implements IXposedHookLoadPackage {
         );
 
         if (clazz == null) {
-            log("PassWindowBlur class not found: " + className);
             return;
         }
 
@@ -190,7 +191,6 @@ public final class MainHook implements IXposedHookLoadPackage {
 
                         if (!original.equals(patched)) {
                             param.setResult(patched);
-                            log("PassWindowBlur allowlist patched via " + className);
                         }
                     }
                 };
@@ -201,10 +201,7 @@ public final class MainHook implements IXposedHookLoadPackage {
                     "getPassWindowBlurFilterData",
                     args
             );
-
-            log("PassWindowBlur hook installed: " + className);
-        } catch (Throwable throwable) {
-            log("PassWindowBlur hook failed: " + className + " : " + throwable);
+        } catch (Throwable ignored) {
         }
     }
 
@@ -238,10 +235,8 @@ public final class MainHook implements IXposedHookLoadPackage {
             }
 
             packages.put(TARGET_PACKAGE);
-
             return root.toString();
-        } catch (Throwable throwable) {
-            log("PassWindowBlur filter parse failed: " + throwable);
+        } catch (Throwable ignored) {
             return original;
         }
     }
@@ -265,9 +260,5 @@ public final class MainHook implements IXposedHookLoadPackage {
     private static int getOverrideDepth() {
         Integer depth = MIUI_LAUNCHER_OVERRIDE_DEPTH.get();
         return depth == null ? 0 : depth;
-    }
-
-    private static void log(String message) {
-        XposedBridge.log(TAG + ": " + message);
     }
 }
