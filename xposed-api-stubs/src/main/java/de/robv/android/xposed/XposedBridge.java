@@ -2,7 +2,6 @@ package de.robv.android.xposed;
 
 import java.util.Set;
 
-/** Compile-only stub. LSPosed supplies the real class at runtime. */
 public final class XposedBridge {
 
     private XposedBridge() {

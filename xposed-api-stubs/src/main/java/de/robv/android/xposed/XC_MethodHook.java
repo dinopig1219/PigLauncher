@@ -1,6 +1,5 @@
 package de.robv.android.xposed;
 
-/** Compile-only stub. LSPosed supplies the real class at runtime. */
 public abstract class XC_MethodHook extends XCallback {
 
     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
