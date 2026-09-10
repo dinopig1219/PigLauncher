@@ -1,15 +1,15 @@
 # PigLauncher
 
-A LSPosed module for restoring missing features in POCO Launcher compare with HyperOS System Launcher.
+A LSPosed module for adding missing features back to POCO Launcher compare with HyperOS System Launcher.
 
-## Current fixes
+## Current fixes & features
 
 - Dark Folder in Dark Mode
 - Advanced Textures
 
 ## Target launcher
 
-POCO Launcher a.k.a. packagename `com.mi.android.globallauncher`
+POCO Launcher a.k.a. package name `com.mi.android.globallauncher`
 
 The initial implementation is tested based on version `RELEASE-6.01.05.2407-06081949`
 
