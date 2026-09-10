@@ -1,9 +1,11 @@
 package io.github.piglauncher;
 
-import android.content.Context;
 import android.view.View;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
@@ -17,8 +19,8 @@ public final class MainHook implements IXposedHookLoadPackage {
     private static final String TAG = "PigLauncher";
     private static final String AT_TAG = "PigLauncher-AT";
 
-    private static final String TARGET_PACKAGE =
-            "com.mi.android.globallauncher";
+    private static final String POCO_PACKAGE = "com.mi.android.globallauncher";
+    private static final String MIUI_PACKAGE = "com.miui.home";
 
     private static final String LARGE_FOLDER_BACKGROUND =
             "com.miui.home.folder.FolderIcon4x4NormalBackgroundDrawable";
@@ -47,7 +49,7 @@ public final class MainHook implements IXposedHookLoadPackage {
     private static final ThreadLocal<Integer> MIUI_LAUNCHER_OVERRIDE_DEPTH =
             new ThreadLocal<>();
 
-    private static final AtomicLong AT_LOG_SEQUENCE =
+    private static final AtomicLong LOG_SEQUENCE =
             new AtomicLong(0);
 
     @Override
@@ -55,55 +57,66 @@ public final class MainHook implements IXposedHookLoadPackage {
             XC_LoadPackage.LoadPackageParam lpparam
     ) throws Throwable {
 
-        if (!TARGET_PACKAGE.equals(lpparam.packageName)) {
+        boolean isPoco = POCO_PACKAGE.equals(lpparam.packageName);
+        boolean isMiui = MIUI_PACKAGE.equals(lpparam.packageName);
+
+        if (!isPoco && !isMiui) {
             return;
         }
 
-        log("loaded " + lpparam.packageName);
+        String source = isPoco ? "POCO" : "MIUI";
 
-        Class<?> buildConfigUtilsClass =
-                XposedHelpers.findClassIfExists(
-                        BUILD_CONFIG_UTILS,
-                        lpparam.classLoader
-                );
+        log(source, "loaded " + lpparam.packageName);
 
-        if (buildConfigUtilsClass == null) {
-            log("BuildConfigUtils not found");
-            return;
-        }
+        if (isPoco) {
+            Class<?> buildConfigUtilsClass =
+                    XposedHelpers.findClassIfExists(
+                            BUILD_CONFIG_UTILS,
+                            lpparam.classLoader
+                    );
 
-        XposedHelpers.findAndHookMethod(
-                buildConfigUtilsClass,
-                "isMiuiLauncher",
-                new XC_MethodHook() {
-                    @Override
-                    protected void beforeHookedMethod(
-                            MethodHookParam param
-                    ) {
-                        if (getOverrideDepth() > 0) {
-                            param.setResult(Boolean.TRUE);
+            if (buildConfigUtilsClass == null) {
+                log(source, "BuildConfigUtils not found");
+                return;
+            }
+
+            XposedHelpers.findAndHookMethod(
+                    buildConfigUtilsClass,
+                    "isMiuiLauncher",
+                    new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(
+                                MethodHookParam param
+                        ) {
+                            if (getOverrideDepth() > 0) {
+                                param.setResult(Boolean.TRUE);
+                            }
                         }
                     }
-                }
-        );
+            );
 
-        installLargeFolderDarkModeFix(
-                lpparam.classLoader
-        );
+            installLargeFolderDarkModeFix(
+                    lpparam.classLoader,
+                    source
+            );
 
-        installAdvancedTexturesGateProbe(
-                lpparam.classLoader
-        );
+            installAdvancedTexturesGateProbe(
+                    lpparam.classLoader,
+                    source
+            );
+        }
 
         installAdvancedTexturesDiagnostics(
-                lpparam.classLoader
+                lpparam.classLoader,
+                source
         );
 
-        log("hook installation finished");
+        log(source, "hook installation finished");
     }
 
     private static void installLargeFolderDarkModeFix(
-            ClassLoader classLoader
+            ClassLoader classLoader,
+            String source
     ) {
 
         Class<?> backgroundClass =
@@ -113,7 +126,7 @@ public final class MainHook implements IXposedHookLoadPackage {
                 );
 
         if (backgroundClass == null) {
-            log("Large Folder class not found");
+            log(source, "Large Folder class not found");
             return;
         }
 
@@ -136,11 +149,12 @@ public final class MainHook implements IXposedHookLoadPackage {
                 }
         );
 
-        log("Large Folder Dark Mode fix installed");
+        log(source, "Large Folder Dark Mode fix installed");
     }
 
     private static void installAdvancedTexturesGateProbe(
-            ClassLoader classLoader
+            ClassLoader classLoader,
+            String source
     ) {
 
         Class<?> blurUtilitiesClass =
@@ -150,284 +164,190 @@ public final class MainHook implements IXposedHookLoadPackage {
                 );
 
         if (blurUtilitiesClass == null) {
-            atLog("Advanced Textures gate class missing");
+            atLog(source, "Advanced Textures gate class missing");
             return;
         }
 
-        XposedHelpers.findAndHookMethod(
-                blurUtilitiesClass,
-                "isBlurSupported",
-                new XC_MethodHook() {
-                    @Override
-                    protected void beforeHookedMethod(
-                            MethodHookParam param
-                    ) {
-                        enterMiuiLauncherOverride();
-                    }
+        try {
+            XposedHelpers.findAndHookMethod(
+                    blurUtilitiesClass,
+                    "isBlurSupported",
+                    new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(
+                                MethodHookParam param
+                        ) {
+                            enterMiuiLauncherOverride();
+                        }
 
-                    @Override
-                    protected void afterHookedMethod(
-                            MethodHookParam param
-                    ) {
-                        exitMiuiLauncherOverride();
+                        @Override
+                        protected void afterHookedMethod(
+                                MethodHookParam param
+                        ) {
+                            exitMiuiLauncherOverride();
+                        }
                     }
-                }
-        );
+            );
 
-        atLog("Advanced Textures gate probe installed");
+            atLog(source, "Advanced Textures gate probe installed");
+        } catch (Throwable throwable) {
+            atLog(
+                    source,
+                    "Advanced Textures gate probe failed: "
+                            + throwable
+            );
+        }
     }
 
     private static void installAdvancedTexturesDiagnostics(
-            ClassLoader classLoader
+            ClassLoader classLoader,
+            String source
     ) {
 
-        atLog("Installing Advanced Textures diagnostics");
+        atLog(source, "Installing Phase 3 diagnostics");
 
-        Class<?> blurUtilities =
-                findDiagnosticClass(
-                        BLUR_UTILITIES,
-                        classLoader
-                );
+        hookClass(
+                BLUR_UTILITIES,
+                classLoader,
+                source,
+                false,
+                "isBlurSupported",
+                "isBackgroundBlurSupported",
+                "isThreeLayerBlurSupported",
+                "setBackgroundBlurEnabled"
+        );
 
-        if (blurUtilities != null) {
-            traceMethod(
-                    blurUtilities,
-                    "isBlurSupported"
-            );
+        hookClass(
+                MIUIX_MATERIAL_BLUR_UTILITIES,
+                classLoader,
+                source,
+                true,
+                "isSupportHyperMaterialBlur",
+                "shouldApplyBlur",
+                "applyMaterialBlur",
+                "addBackgroundBlenderColor",
+                "addMiBackgroundBlendColor",
+                "clearBackgroundBlendColors",
+                "clearBackgroundBlendConfig",
+                "clearMiBackgroundBlendColor",
+                "setBackgroundBlendConfig",
+                "setMiBackgroundBlendColors",
+                "setMiBackgroundBlurEnhanceFlag",
+                "setMiBackgroundBlurMode",
+                "setMiBackgroundBlurRadius",
+                "setMiBackgroundBlurScaleRatio",
+                "setMiBackgroundBlurType",
+                "setMiBackgroundLightBlendMode",
+                "setMiViewBlurMode",
+                "setWidgetBackgroundBlendColors"
+        );
 
-            traceMethod(
-                    blurUtilities,
-                    "isBackgroundBlurSupported"
-            );
+        hookClass(
+                HYPER_MATERIAL_UTILS,
+                classLoader,
+                source,
+                true,
+                "isEnable",
+                "isDefaultFeatureEnable",
+                "isFeatureEnable",
+                "enableHyperMaterial"
+        );
 
-            traceMethod(
-                    blurUtilities,
-                    "isThreeLayerBlurSupported"
-            );
+        hookClass(
+                MIUI_BLUR_UTILS,
+                classLoader,
+                source,
+                true,
+                "isEnable",
+                "setBackgroundBlur",
+                "setBackgroundBlurMode",
+                "setBackgroundBlurRadius",
+                "setBackgroundBlurType",
+                "setViewBlurMode",
+                "setPassWindowBlurEnabled",
+                "addBackgroundBlenderColor",
+                "addMiBackgroundBlendColor",
+                "clearBackgroundBlendConfig",
+                "clearMiBackgroundBlendColor",
+                "setBackgroundBlendConfig",
+                "setMiBackgroundBlendColors",
+                "setMiBackgroundBlurEnhanceFlag",
+                "setMiBackgroundBlurMode",
+                "setMiBackgroundBlurRadius",
+                "setMiBackgroundBlurScaleRatio",
+                "setMiBackgroundBlurType",
+                "setMiBackgroundLightBlendMode",
+                "setMiViewBlurMode"
+        );
 
-            traceMethod(
-                    blurUtilities,
-                    "setBackgroundBlurEnabled"
-            );
-        }
+        hookClass(
+                MIUI_BLUR_UI_HELPER,
+                classLoader,
+                source,
+                true,
+                "isSupportBlur",
+                "isEnableBlur",
+                "isApplyBlur",
+                "setSupportBlur",
+                "setEnableBlur",
+                "setEnableBlurInternal",
+                "applyBlur",
+                "applyBlurInternal",
+                "refreshBlur",
+                "addBackgroundBlenderColor",
+                "addMiBackgroundBlendColor",
+                "clearBackgroundBlendConfig",
+                "clearMiBackgroundBlendColor",
+                "setBackgroundBlendConfig",
+                "setMiBackgroundBlendColors"
+        );
 
-        Class<?> miuixMaterialBlurUtilities =
-                findDiagnosticClass(
-                        MIUIX_MATERIAL_BLUR_UTILITIES,
-                        classLoader
-                );
+        hookClass(
+                BOTTOM_SHEET_VIEW,
+                classLoader,
+                source,
+                true,
+                "isSupportBlur",
+                "isEnableBlur",
+                "isApplyBlur",
+                "setSupportBlur",
+                "setEnableBlur",
+                "applyBlur",
+                "updateMaterialEffect",
+                "enableHyperMaterial"
+        );
 
-        if (miuixMaterialBlurUtilities != null) {
-            traceMethod(
-                    miuixMaterialBlurUtilities,
-                    "isSupportHyperMaterialBlur"
-            );
+        hookClass(
+                View.class,
+                source,
+                true,
+                "setMiBackgroundBlurMode",
+                "setMiBackgroundBlurRadius",
+                "setMiBackgroundBlurType",
+                "setMiBackgroundBlurEnhanceFlag",
+                "setMiBackgroundBlurScaleRatio",
+                "setMiBackgroundLightBlendMode",
+                "setMiBackgroundBlendColors",
+                "addMiBackgroundBlendColor",
+                "clearMiBackgroundBlendColor",
+                "setMiViewBlurMode",
+                "setBackgroundBlurMode",
+                "setBackgroundBlurRadius",
+                "setBackgroundBlurType",
+                "setBackgroundBlendConfig",
+                "addBackgroundBlenderColor",
+                "clearBackgroundBlendConfig"
+        );
 
-            traceMethod(
-                    miuixMaterialBlurUtilities,
-                    "shouldApplyBlur",
-                    View.class
-            );
-
-            traceMethod(
-                    miuixMaterialBlurUtilities,
-                    "applyMaterialBlur",
-                    View.class,
-                    Runnable.class,
-                    Runnable.class
-            );
-        }
-
-        Class<?> hyperMaterialUtils =
-                findDiagnosticClass(
-                        HYPER_MATERIAL_UTILS,
-                        classLoader
-                );
-
-        if (hyperMaterialUtils != null) {
-            traceMethod(
-                    hyperMaterialUtils,
-                    "isEnable"
-            );
-
-            traceMethod(
-                    hyperMaterialUtils,
-                    "isDefaultFeatureEnable"
-            );
-
-            traceMethod(
-                    hyperMaterialUtils,
-                    "isFeatureEnable",
-                    Context.class
-            );
-        }
-
-        Class<?> miuiBlurUtils =
-                findDiagnosticClass(
-                        MIUI_BLUR_UTILS,
-                        classLoader
-                );
-
-        if (miuiBlurUtils != null) {
-            traceMethod(
-                    miuiBlurUtils,
-                    "isEnable"
-            );
-
-            traceMethod(
-                    miuiBlurUtils,
-                    "setBackgroundBlur",
-                    View.class,
-                    int.class,
-                    int.class
-            );
-
-            traceMethod(
-                    miuiBlurUtils,
-                    "setBackgroundBlurMode",
-                    View.class,
-                    int.class
-            );
-
-            traceMethod(
-                    miuiBlurUtils,
-                    "setBackgroundBlurRadius",
-                    View.class,
-                    int.class
-            );
-
-            traceMethod(
-                    miuiBlurUtils,
-                    "setBackgroundBlurType",
-                    View.class,
-                    int.class
-            );
-
-            traceMethod(
-                    miuiBlurUtils,
-                    "setViewBlurMode",
-                    View.class,
-                    int.class
-            );
-
-            traceMethod(
-                    miuiBlurUtils,
-                    "setPassWindowBlurEnabled",
-                    View.class,
-                    boolean.class
-            );
-        }
-
-        Class<?> miuiBlurUiHelper =
-                findDiagnosticClass(
-                        MIUI_BLUR_UI_HELPER,
-                        classLoader
-                );
-
-        if (miuiBlurUiHelper != null) {
-            traceMethod(
-                    miuiBlurUiHelper,
-                    "isSupportBlur"
-            );
-
-            traceMethod(
-                    miuiBlurUiHelper,
-                    "isEnableBlur"
-            );
-
-            traceMethod(
-                    miuiBlurUiHelper,
-                    "isApplyBlur"
-            );
-
-            traceMethod(
-                    miuiBlurUiHelper,
-                    "setSupportBlur",
-                    boolean.class
-            );
-
-            traceMethod(
-                    miuiBlurUiHelper,
-                    "setEnableBlur",
-                    boolean.class
-            );
-
-            traceMethod(
-                    miuiBlurUiHelper,
-                    "setEnableBlurInternal",
-                    boolean.class
-            );
-
-            traceMethod(
-                    miuiBlurUiHelper,
-                    "applyBlur",
-                    boolean.class
-            );
-
-            traceMethod(
-                    miuiBlurUiHelper,
-                    "applyBlurInternal",
-                    boolean.class
-            );
-
-            traceMethod(
-                    miuiBlurUiHelper,
-                    "refreshBlur"
-            );
-        }
-
-        Class<?> bottomSheetView =
-                findDiagnosticClass(
-                        BOTTOM_SHEET_VIEW,
-                        classLoader
-                );
-
-        if (bottomSheetView != null) {
-            traceMethod(
-                    bottomSheetView,
-                    "isSupportBlur"
-            );
-
-            traceMethod(
-                    bottomSheetView,
-                    "isEnableBlur"
-            );
-
-            traceMethod(
-                    bottomSheetView,
-                    "isApplyBlur"
-            );
-
-            traceMethod(
-                    bottomSheetView,
-                    "setSupportBlur",
-                    boolean.class
-            );
-
-            traceMethod(
-                    bottomSheetView,
-                    "setEnableBlur",
-                    boolean.class
-            );
-
-            traceMethod(
-                    bottomSheetView,
-                    "applyBlur",
-                    boolean.class
-            );
-
-            traceMethod(
-                    bottomSheetView,
-                    "updateMaterialEffect"
-            );
-        }
-
-        atLog("Advanced Textures diagnostics installed");
+        atLog(source, "Phase 3 diagnostics installed");
     }
 
-    private static Class<?> findDiagnosticClass(
+    private static void hookClass(
             String className,
-            ClassLoader classLoader
+            ClassLoader classLoader,
+            String source,
+            boolean stack,
+            String... methodNames
     ) {
 
         Class<?> clazz =
@@ -437,86 +357,317 @@ public final class MainHook implements IXposedHookLoadPackage {
                 );
 
         if (clazz == null) {
-            atLog("CLASS MISSING: " + className);
-        } else {
-            atLog("CLASS OK: " + className);
+            atLog(source, "CLASS MISSING: " + className);
+            return;
         }
 
-        return clazz;
+        atLog(source, "CLASS OK: " + className);
+
+        hookClass(
+                clazz,
+                source,
+                stack,
+                methodNames
+        );
     }
 
-    private static void traceMethod(
-            final Class<?> clazz,
-            final String methodName,
-            Object... parameterTypes
+    private static void hookClass(
+            Class<?> clazz,
+            String source,
+            boolean stack,
+            String... methodNames
     ) {
 
+        Set<String> wanted =
+                new HashSet<>(
+                        Arrays.asList(methodNames)
+                );
+
+        Set<String> hooked =
+                new HashSet<>();
+
+        Method[] methods;
+
         try {
-            Object[] hookArguments =
-                    Arrays.copyOf(
-                            parameterTypes,
-                            parameterTypes.length + 1
-                    );
-
-            hookArguments[parameterTypes.length] =
-                    new XC_MethodHook() {
-                        @Override
-                        protected void afterHookedMethod(
-                                MethodHookParam param
-                        ) {
-
-                            String result;
-
-                            try {
-                                result =
-                                        formatValue(
-                                                param.getResult()
-                                        );
-                            } catch (Throwable throwable) {
-                                result =
-                                        "<unavailable:"
-                                                + throwable.getClass()
-                                                .getSimpleName()
-                                                + ">";
-                            }
-
-                            atLog(
-                                    clazz.getName()
-                                            + "#"
-                                            + methodName
-                                            + "("
-                                            + formatArguments(
-                                                    param.args
-                                            )
-                                            + ") => "
-                                            + result
-                            );
-                        }
-                    };
-
-            XposedHelpers.findAndHookMethod(
-                    clazz,
-                    methodName,
-                    hookArguments
-            );
-
-            atLog(
-                    "HOOK OK: "
-                            + clazz.getName()
-                            + "#"
-                            + methodName
-            );
-
+            methods = clazz.getDeclaredMethods();
         } catch (Throwable throwable) {
             atLog(
-                    "HOOK FAILED: "
+                    source,
+                    "METHOD ENUM FAILED: "
                             + clazz.getName()
-                            + "#"
-                            + methodName
                             + " : "
                             + throwable
             );
+            return;
         }
+
+        for (Method method : methods) {
+            if (!wanted.contains(method.getName())) {
+                continue;
+            }
+
+            String signature =
+                    methodSignature(method);
+
+            if (!hooked.add(signature)) {
+                continue;
+            }
+
+            try {
+                Class<?>[] parameterTypes =
+                        method.getParameterTypes();
+
+                Object[] hookArguments =
+                        new Object[
+                                parameterTypes.length + 1
+                        ];
+
+                System.arraycopy(
+                        parameterTypes,
+                        0,
+                        hookArguments,
+                        0,
+                        parameterTypes.length
+                );
+
+                hookArguments[
+                        parameterTypes.length
+                ] =
+                        new XC_MethodHook() {
+                            @Override
+                            protected void afterHookedMethod(
+                                    MethodHookParam param
+                            ) {
+
+                                StringBuilder message =
+                                        new StringBuilder();
+
+                                message.append(
+                                        clazz.getName()
+                                );
+
+                                message.append("#");
+
+                                message.append(
+                                        method.getName()
+                                );
+
+                                message.append("(");
+
+                                message.append(
+                                        formatArguments(
+                                                param.args
+                                        )
+                                );
+
+                                message.append(")");
+
+                                message.append(" => ");
+
+                                try {
+                                    message.append(
+                                            formatValue(
+                                                    param.getResult()
+                                            )
+                                    );
+                                } catch (Throwable throwable) {
+                                    message.append(
+                                            "<result unavailable:"
+                                    );
+
+                                    message.append(
+                                            throwable
+                                                    .getClass()
+                                                    .getSimpleName()
+                                    );
+
+                                    message.append(">");
+                                }
+
+                                if (stack) {
+                                    String trace =
+                                            formatRelevantStack();
+
+                                    if (!trace.isEmpty()) {
+                                        message.append(
+                                                " | stack="
+                                        );
+
+                                        message.append(trace);
+                                    }
+                                }
+
+                                atLog(
+                                        source,
+                                        message.toString()
+                                );
+                            }
+                        };
+
+                XposedHelpers.findAndHookMethod(
+                        clazz,
+                        method.getName(),
+                        hookArguments
+                );
+
+                atLog(
+                        source,
+                        "HOOK OK: "
+                                + signature
+                );
+
+            } catch (Throwable throwable) {
+                atLog(
+                        source,
+                        "HOOK FAILED: "
+                                + signature
+                                + " : "
+                                + throwable
+                );
+            }
+        }
+
+        for (String name : wanted) {
+            boolean found = false;
+
+            for (String signature : hooked) {
+                if (signature.contains(
+                        "#" + name + "("
+                )) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                atLog(
+                        source,
+                        "METHOD MISSING: "
+                                + clazz.getName()
+                                + "#"
+                                + name
+                );
+            }
+        }
+    }
+
+    private static String methodSignature(
+            Method method
+    ) {
+
+        StringBuilder builder =
+                new StringBuilder();
+
+        builder.append(
+                method.getDeclaringClass().getName()
+        );
+
+        builder.append("#");
+
+        builder.append(
+                method.getName()
+        );
+
+        builder.append("(");
+
+        Class<?>[] parameterTypes =
+                method.getParameterTypes();
+
+        for (int i = 0; i < parameterTypes.length; i++) {
+            if (i > 0) {
+                builder.append(",");
+            }
+
+            builder.append(
+                    parameterTypes[i].getName()
+            );
+        }
+
+        builder.append(")");
+
+        builder.append(":");
+
+        builder.append(
+                method.getReturnType().getName()
+        );
+
+        return builder.toString();
+    }
+
+    private static String formatRelevantStack() {
+
+        StackTraceElement[] stack =
+                Thread.currentThread()
+                        .getStackTrace();
+
+        StringBuilder builder =
+                new StringBuilder();
+
+        int count = 0;
+
+        for (StackTraceElement element : stack) {
+
+            String className =
+                    element.getClassName();
+
+            if (className.equals(
+                    Thread.class.getName()
+            )) {
+                continue;
+            }
+
+            if (className.equals(
+                    MainHook.class.getName()
+            )) {
+                continue;
+            }
+
+            if (className.startsWith(
+                    "de.robv.android.xposed."
+            )) {
+                continue;
+            }
+
+            if (!className.startsWith(
+                    "com.miui.home."
+            )
+                    && !className.startsWith(
+                    "miuix."
+            )
+                    && !className.startsWith(
+                    "android.view."
+            )) {
+                continue;
+            }
+
+            if (builder.length() > 0) {
+                builder.append(" <- ");
+            }
+
+            builder.append(
+                    className
+            );
+
+            builder.append(".");
+
+            builder.append(
+                    element.getMethodName()
+            );
+
+            builder.append(":");
+
+            builder.append(
+                    element.getLineNumber()
+            );
+
+            count++;
+
+            if (count >= 8) {
+                break;
+            }
+        }
+
+        return builder.toString();
     }
 
     private static String formatArguments(
@@ -562,33 +713,74 @@ public final class MainHook implements IXposedHookLoadPackage {
             View view =
                     (View) value;
 
-            return view.getClass().getName()
-                    + "@"
-                    + Integer.toHexString(
+            StringBuilder builder =
+                    new StringBuilder();
+
+            builder.append(
+                    view.getClass().getName()
+            );
+
+            builder.append("@");
+
+            builder.append(
+                    Integer.toHexString(
                             System.identityHashCode(view)
                     )
-                    + "{attached="
-                    + view.isAttachedToWindow()
-                    + ",visibility="
-                    + view.getVisibility()
-                    + ",size="
-                    + view.getWidth()
-                    + "x"
-                    + view.getHeight()
-                    + "}";
+            );
+
+            try {
+                builder.append("{attached=");
+                builder.append(
+                        view.isAttachedToWindow()
+                );
+                builder.append(",visibility=");
+                builder.append(
+                        view.getVisibility()
+                );
+                builder.append(",alpha=");
+                builder.append(
+                        view.getAlpha()
+                );
+                builder.append(",size=");
+                builder.append(
+                        view.getWidth()
+                );
+                builder.append("x");
+                builder.append(
+                        view.getHeight()
+                );
+                builder.append("}");
+            } catch (Throwable ignored) {
+            }
+
+            return builder.toString();
         }
 
-        if (value instanceof Context) {
-            return value.getClass().getName();
-        }
-
-        Class<?> valueClass =
+        Class<?> clazz =
                 value.getClass();
 
-        if (valueClass.isArray()) {
+        if (clazz.isArray()) {
             if (value instanceof int[]) {
                 return Arrays.toString(
                         (int[]) value
+                );
+            }
+
+            if (value instanceof long[]) {
+                return Arrays.toString(
+                        (long[]) value
+                );
+            }
+
+            if (value instanceof float[]) {
+                return Arrays.toString(
+                        (float[]) value
+                );
+            }
+
+            if (value instanceof double[]) {
+                return Arrays.toString(
+                        (double[]) value
                 );
             }
 
@@ -599,15 +791,15 @@ public final class MainHook implements IXposedHookLoadPackage {
             }
 
             if (value instanceof Object[]) {
-                return Arrays.toString(
+                return Arrays.deepToString(
                         (Object[]) value
                 );
             }
 
-            return valueClass.getName();
+            return clazz.getName();
         }
 
-        return valueClass.getName()
+        return clazz.getName()
                 + "@"
                 + Integer.toHexString(
                         System.identityHashCode(value)
@@ -621,6 +813,7 @@ public final class MainHook implements IXposedHookLoadPackage {
     }
 
     private static void exitMiuiLauncherOverride() {
+
         int depth =
                 getOverrideDepth() - 1;
 
@@ -634,6 +827,7 @@ public final class MainHook implements IXposedHookLoadPackage {
     }
 
     private static int getOverrideDepth() {
+
         Integer depth =
                 MIUI_LAUNCHER_OVERRIDE_DEPTH.get();
 
@@ -643,24 +837,33 @@ public final class MainHook implements IXposedHookLoadPackage {
     }
 
     private static void log(
+            String source,
             String message
     ) {
         XposedBridge.log(
-                TAG + ": " + message
+                TAG
+                        + " ["
+                        + source
+                        + "]: "
+                        + message
         );
     }
 
     private static void atLog(
+            String source,
             String message
     ) {
+
         long sequence =
-                AT_LOG_SEQUENCE.incrementAndGet();
+                LOG_SEQUENCE.incrementAndGet();
 
         XposedBridge.log(
                 AT_TAG
                         + " #"
                         + sequence
                         + " ["
+                        + source
+                        + "] ["
                         + Thread.currentThread().getName()
                         + "]: "
                         + message
