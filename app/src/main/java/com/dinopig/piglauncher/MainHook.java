@@ -23,6 +23,8 @@ public final class MainHook implements IXposedHookLoadPackage {
             return;
         }
 
+        HookStatusBridge.install(lpparam.classLoader);
+
         Class<?> buildConfigUtilsClass = XposedHelpers.findClassIfExists(
                 BUILD_CONFIG_UTILS,
                 lpparam.classLoader
