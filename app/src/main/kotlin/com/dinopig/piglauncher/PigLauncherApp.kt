@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -188,6 +189,15 @@ private fun ActivationStatusCard(
     modifier: Modifier = Modifier,
 ) {
     val darkTheme = isSystemInDarkTheme()
+    val context = LocalContext.current
+    val versionName = remember(context) {
+        runCatching {
+            context.packageManager
+                .getPackageInfo(context.packageName, 0)
+                .versionName
+                .orEmpty()
+        }.getOrDefault("")
+    }
 
     val cardColor = when (status) {
         ModuleStatus.ACTIVE -> if (darkTheme) Color(0xFF173923) else Color(0xFFDFFAE4)
@@ -203,13 +213,8 @@ private fun ActivationStatusCard(
 
     val title = when (status) {
         ModuleStatus.ACTIVE -> stringResource(R.string.status_activated)
-        ModuleStatus.RESTART_REQUIRED -> stringResource(R.string.status_activated)
-        ModuleStatus.DISABLED -> stringResource(R.string.status_not_activated)
-    }
-
-    val subtitle = when (status) {
         ModuleStatus.RESTART_REQUIRED -> stringResource(R.string.status_restart_scope)
-        else -> null
+        ModuleStatus.DISABLED -> stringResource(R.string.status_not_activated)
     }
 
     Card(
@@ -219,7 +224,7 @@ private fun ActivationStatusCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(110.dp),
+                .height(150.dp),
         ) {
             Text(
                 text = title,
@@ -235,16 +240,33 @@ private fun ActivationStatusCard(
                 },
             )
 
-            if (subtitle != null) {
+            if (versionName.isNotEmpty()) {
                 Text(
-                    text = subtitle,
+                    text = versionName,
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(start = 16.dp, top = 48.dp),
+                        .padding(start = 16.dp, top = 47.dp),
                     fontSize = 15.sp,
-                    color = accentColor,
+                    color = if (status == ModuleStatus.ACTIVE) {
+                        MiuixTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        accentColor
+                    },
                 )
             }
+
+            Text(
+                text = stringResource(R.string.xposed_api_version, 102),
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 16.dp, bottom = 14.dp),
+                fontSize = 15.sp,
+                color = if (status == ModuleStatus.ACTIVE) {
+                    MiuixTheme.colorScheme.onSurface
+                } else {
+                    accentColor
+                },
+            )
 
             StatusSymbol(
                 status = status,

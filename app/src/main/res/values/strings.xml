@@ -4,11 +4,12 @@
     <string name="xposed_description">A hook module for POCO Launcher functionality.</string>
     <string name="status_activated">Activated</string>
     <string name="status_not_activated">Not activated</string>
-    <string name="status_restart_scope">Restart scope required</string>
-    <string name="restart_poco_launcher">Restart POCO Launcher</string>
+    <string name="status_restart_scope">Activated, restart scope required</string>
+    <string name="restart_poco_launcher">Restart Launcher</string>
     <string name="restart_poco_launcher_message">Are you sure you want to restart POCO Launcher?</string>
     <string name="root_required_title">Root permission required</string>
-    <string name="root_required_message">Please grant Root access to this app and try again.</string>
+    <string name="root_required_message">Root permission required to restart launcher. Please grant Root access and try again.</string>
     <string name="cancel">Cancel</string>
     <string name="confirm">Confirm</string>
+    <string name="xposed_api_version">API %1$d</string>
 </resources>

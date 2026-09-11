@@ -4,11 +4,12 @@
     <string name="xposed_description">用於Hook POCO Launcher功能的模塊。</string>
     <string name="status_activated">已激活</string>
     <string name="status_not_activated">未激活</string>
-    <string name="status_restart_scope">需重啟作用域</string>
-    <string name="restart_poco_launcher">重新啟動POCO桌面</string>
+    <string name="status_restart_scope">已激活，需重啟作用域</string>
+    <string name="restart_poco_launcher">重新啟動桌面</string>
     <string name="restart_poco_launcher_message">確定要重新啟動POCO桌面嗎？</string>
     <string name="root_required_title">需要Root權限</string>
-    <string name="root_required_message">請授權本應用取得Root後重試。</string>
+    <string name="root_required_message">重啟桌面需要Root權限，請授權Root權限後重試。</string>
     <string name="cancel">取消</string>
     <string name="confirm">確認</string>
+    <string name="xposed_api_version">API %1$d</string>
 </resources>
