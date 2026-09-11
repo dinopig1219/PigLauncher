@@ -75,7 +75,6 @@ internal fun PigLauncherApp(status: ModuleStatus) {
                     scrollBehavior = scrollBehavior,
                     actions = {
                         IconButton(
-                            modifier = Modifier.padding(end = 16.dp),
                             onClick = {
                                 showRestartDialog = true
                             },
@@ -110,6 +109,7 @@ internal fun PigLauncherApp(status: ModuleStatus) {
 
             OverlayDialog(
                 title = stringResource(R.string.restart_poco_launcher),
+                summary = stringResource(R.string.restart_poco_launcher_message),
                 show = showRestartDialog,
                 onDismissRequest = {
                     if (!restarting) {
@@ -117,11 +117,6 @@ internal fun PigLauncherApp(status: ModuleStatus) {
                     }
                 },
             ) {
-                Text(
-                    text = stringResource(R.string.restart_poco_launcher_message),
-                    color = MiuixTheme.colorScheme.onSurface,
-                )
-
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -166,16 +161,12 @@ internal fun PigLauncherApp(status: ModuleStatus) {
 
             OverlayDialog(
                 title = stringResource(R.string.root_required_title),
+                summary = stringResource(R.string.root_required_message),
                 show = showRootRequiredDialog,
                 onDismissRequest = {
                     showRootRequiredDialog = false
                 },
             ) {
-                Text(
-                    text = stringResource(R.string.root_required_message),
-                    color = MiuixTheme.colorScheme.onSurface,
-                )
-
                 TextButton(
                     text = stringResource(R.string.confirm),
                     onClick = {
