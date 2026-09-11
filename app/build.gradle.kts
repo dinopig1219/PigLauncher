@@ -7,11 +7,11 @@ val commitSha = System.getenv("APP_COMMIT_SHA")?.take(7)
 val releaseTag = System.getenv("APP_RELEASE_TAG")?.takeIf { it.isNotBlank() }
 
 android {
-    namespace = "io.github.piglauncher"
+    namespace = "com.dinopig.piglauncher"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "io.github.piglauncher"
+        applicationId = "com.dinopig.piglauncher"
         minSdk = 28
         targetSdk = 35
 
