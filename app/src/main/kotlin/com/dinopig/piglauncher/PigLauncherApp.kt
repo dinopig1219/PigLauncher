@@ -248,7 +248,7 @@ private fun ActivationStatusCard(
                         .padding(start = 16.dp, top = 47.dp),
                     fontSize = 15.sp,
                     color = if (status == ModuleStatus.ACTIVE) {
-                        MiuixTheme.colorScheme.onSurfaceVariant
+                        MiuixTheme.colorScheme.onSurfaceContainerVariant
                     } else {
                         accentColor
                     },
