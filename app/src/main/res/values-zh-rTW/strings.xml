@@ -2,9 +2,9 @@
 <resources>
     <string name="app_name">PigLauncher</string>
     <string name="xposed_description">用於Hook POCO Launcher功能的模塊。</string>
-    <string name="status_activated">已激活</string>
-    <string name="status_not_activated">未激活</string>
-    <string name="status_restart_scope">已激活，需重啟作用域</string>
+    <string name="status_activated">已啟用</string>
+    <string name="status_not_activated">未啟用</string>
+    <string name="status_restart_scope">已啟用，需重啟作用域</string>
     <string name="restart_poco_launcher">重新啟動桌面</string>
     <string name="restart_poco_launcher_message">確定要重新啟動POCO桌面嗎？</string>
     <string name="root_required_title">缺失Root權限</string>
@@ -15,15 +15,15 @@
     <string name="xposed_api_version">API %1$d</string>
     <string name="feature_section_title">功能</string>
     <string name="feature_folder_dark_mode">解鎖深色文件夾</string>
-    <string name="feature_folder_dark_mode_summary">在深色模式下文件夾將會是深色</string>
+    <string name="feature_folder_dark_mode_summary">在深色模式下資料夾將會是深色</string>
     <string name="feature_advanced_textures">解鎖高級材質</string>
     <string name="feature_advanced_textures_summary">解鎖被閹割的桌面高級材質</string>
-    <string name="feature_folder_adapt_icon_size">宮格文件夾圖標補位</string>
-    <string name="feature_folder_adapt_icon_size_summary">在四宮格和九宮格文件夾裡的應用數量在剛好4個或9個時，最後一個圖標將轉化可點擊的正常圖標</string>
+    <string name="feature_folder_adapt_icon_size">宮格資料夾圖標補位</string>
+    <string name="feature_folder_adapt_icon_size_summary">在四宮格和九宮格資料夾裡的應用數量在剛好4個或9個時，最後一個圖標將轉化可點擊的正常圖標</string>
     <string name="feature_predictive_back_progress">修復預測性返回速度</string>
-    <string name="feature_predictive_back_progress_summary">修复POCO桌面的预测性返回速度异常问题以匹配原生的速度</string>
+    <string name="feature_predictive_back_progress_summary">修復POCO桌面的預測性返回速度異常問題以匹配原生的速度</string>
     <string name="feature_all_widget_animation">解鎖所有小部件返回動畫</string>
-    <string name="feature_all_widget_animation_summary">使所有小部件在返回的時候都會有弹跳動畫</string>
+    <string name="feature_all_widget_animation_summary">使所有小部件在返回的時候都會有彈跳動畫</string>
     <string name="about_title">關於</string>
     <string name="back">返回</string>
     <string name="about_links">連結</string>
