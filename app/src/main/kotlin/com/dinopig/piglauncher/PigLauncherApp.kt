@@ -224,7 +224,7 @@ private fun ActivationStatusCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(150.dp),
+                .height(110.dp),
         ) {
             Text(
                 text = title,
@@ -233,11 +233,7 @@ private fun ActivationStatusCard(
                     .padding(start = 16.dp, top = 14.dp),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = if (status == ModuleStatus.ACTIVE) {
-                    MiuixTheme.colorScheme.onSurface
-                } else {
-                    accentColor
-                },
+                color = MiuixTheme.colorScheme.onSurface,
             )
 
             if (versionName.isNotEmpty()) {
@@ -247,11 +243,7 @@ private fun ActivationStatusCard(
                         .align(Alignment.TopStart)
                         .padding(start = 16.dp, top = 47.dp),
                     fontSize = 15.sp,
-                    color = if (status == ModuleStatus.ACTIVE) {
-                        MiuixTheme.colorScheme.onSurfaceContainerVariant
-                    } else {
-                        accentColor
-                    },
+                    color = MiuixTheme.colorScheme.onSurface,
                 )
             }
 
@@ -261,11 +253,7 @@ private fun ActivationStatusCard(
                     .align(Alignment.BottomStart)
                     .padding(start = 16.dp, bottom = 14.dp),
                 fontSize = 15.sp,
-                color = if (status == ModuleStatus.ACTIVE) {
-                    MiuixTheme.colorScheme.onSurface
-                } else {
-                    accentColor
-                },
+                color = MiuixTheme.colorScheme.onSurface,
             )
 
             StatusSymbol(
