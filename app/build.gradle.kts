@@ -81,5 +81,6 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.compose.foundation:foundation:1.11.4")
     implementation("top.yukonga.miuix.kmp:miuix-ui-android:0.9.3")
+    implementation("top.yukonga.miuix.kmp:miuix-icons-android:0.9.3")
     implementation("io.github.libxposed:service:102.0.0")
 }

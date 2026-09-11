@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PigLauncher</string>
-    <string name="xposed_description">POCO桌面的Hook模組。</string>
+    <string name="xposed_description">用於POCO Launcher的Hook功能。</string>
     <string name="status_activated">已激活</string>
     <string name="status_not_activated">未激活</string>
     <string name="status_restart_scope">需重啟作用域</string>
+    <string name="restart_poco_launcher">重新啟動POCO桌面</string>
+    <string name="restart_poco_launcher_message">確定要重新啟動POCO桌面嗎？</string>
+    <string name="root_required_title">需要Root權限</string>
+    <string name="root_required_message">請授權本應用取得Root後重試。</string>
+    <string name="cancel">取消</string>
+    <string name="confirm">確認</string>
 </resources>
