@@ -13,8 +13,9 @@ internal object RootShell {
                 .start()
 
             DataOutputStream(process.outputStream).use { output ->
-                output.writeBytes("am force-stop $TARGET_PACKAGE\n")
-                output.writeBytes("am start -a android.intent.action.MAIN -c android.intent.category.HOME\n")
+                output.writeBytes("PIDS=\$(pidof $TARGET_PACKAGE)\n")
+                output.writeBytes("if [ -z \"\$PIDS\" ]; then exit 1; fi\n")
+                output.writeBytes("kill -9 \$PIDS\n")
                 output.writeBytes("exit\n")
                 output.flush()
             }

@@ -241,7 +241,7 @@ private fun ActivationStatusCard(
                     text = versionName,
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(start = 16.dp, top = 40.dp),
+                        .padding(start = 16.dp, top = 43.dp),
                     fontSize = 15.sp,
                     color = MiuixTheme.colorScheme.onSurface,
                 )
@@ -251,7 +251,7 @@ private fun ActivationStatusCard(
                 text = stringResource(R.string.xposed_api_version, 102),
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(start = 16.dp, bottom = 7.dp),
+                    .padding(start = 16.dp, bottom = 12.dp),
                 fontSize = 15.sp,
                 color = MiuixTheme.colorScheme.onSurface,
             )
