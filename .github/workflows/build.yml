@@ -27,9 +27,12 @@ jobs:
 
       - uses: android-actions/setup-android@v3
 
+      - name: Install Android SDK 37
+        run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
+
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: 8.11.1
+          gradle-version: 9.3.1
 
       - name: Decode keystore
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/release.keystore

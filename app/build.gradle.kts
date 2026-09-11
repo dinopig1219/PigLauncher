@@ -10,7 +10,7 @@ val releaseTag = System.getenv("APP_RELEASE_TAG")?.takeIf { it.isNotBlank() }
 
 android {
     namespace = "com.dinopig.piglauncher"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.dinopig.piglauncher"
