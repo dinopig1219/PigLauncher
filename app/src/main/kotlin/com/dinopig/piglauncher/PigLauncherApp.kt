@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +51,8 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.basic.rememberTopAppBarState
+import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
+import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
@@ -63,7 +66,8 @@ import io.github.libxposed.service.XposedService
 
 @Composable
 internal fun PigLauncherApp(status: ModuleStatus, service: XposedService?) {
-    val scrollBehavior = MiuixScrollBehavior(rememberTopAppBarState())
+    val topAppBarState = rememberTopAppBarState()
+    val scrollBehavior = MiuixScrollBehavior(topAppBarState)
     val darkTheme = isSystemInDarkTheme()
     val coroutineScope = rememberCoroutineScope()
     var showRestartDialog by remember { mutableStateOf(false) }
@@ -91,39 +95,70 @@ internal fun PigLauncherApp(status: ModuleStatus, service: XposedService?) {
     MiuixTheme(
         colors = if (darkTheme) darkColorScheme() else lightColorScheme(),
     ) {
+        val blurSupported = remember { isRuntimeShaderSupported() }
+        val topBarBackdrop = rememberBlurBackdrop(blurSupported)
+        val blurActive by remember(topBarBackdrop) {
+            derivedStateOf {
+                topBarBackdrop != null && topAppBarState.collapsedFraction >= 0.999f
+            }
+        }
+
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = {
-                TopAppBar(
-                    title = stringResource(R.string.app_name),
-                    scrollBehavior = scrollBehavior,
-                    actions = {
-                        IconButton(
-                            onClick = {
-                                showRestartDialog = true
-                            },
-                            enabled = !restarting,
-                            holdDownState = showRestartDialog,
-                        ) {
-                            Icon(
-                                imageVector = MiuixIcons.Refresh,
-                                contentDescription = stringResource(R.string.restart_poco_launcher),
-                                tint = MiuixTheme.colorScheme.onBackground,
-                            )
-                        }
-                    },
-                )
+                BlurredBar(
+                    backdrop = topBarBackdrop,
+                    blurEnabled = blurActive,
+                ) {
+                    TopAppBar(
+                        title = stringResource(R.string.app_name),
+                        scrollBehavior = scrollBehavior,
+                        color = if (blurActive) {
+                            Color.Transparent
+                        } else {
+                            MiuixTheme.colorScheme.surface
+                        },
+                        actions = {
+                            IconButton(
+                                onClick = {
+                                    showRestartDialog = true
+                                },
+                                enabled = !restarting,
+                                holdDownState = showRestartDialog,
+                            ) {
+                                Icon(
+                                    imageVector = MiuixIcons.Refresh,
+                                    contentDescription = stringResource(R.string.restart_poco_launcher),
+                                    tint = MiuixTheme.colorScheme.onBackground,
+                                )
+                            }
+                        },
+                    )
+                }
             },
         ) { paddingValues ->
-            LazyColumn(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
-                    .overScrollVertical()
-                    .nestedScroll(scrollBehavior.nestedScrollConnection),
-                contentPadding = PaddingValues(top = 8.dp),
+                    .then(
+                        if (topBarBackdrop != null) {
+                            Modifier.layerBackdrop(topBarBackdrop)
+                        } else {
+                            Modifier
+                        },
+                    ),
             ) {
-                item {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .overScrollVertical()
+                        .nestedScroll(scrollBehavior.nestedScrollConnection),
+                    contentPadding = PaddingValues(
+                        top = paddingValues.calculateTopPadding() + 8.dp,
+                        bottom = paddingValues.calculateBottomPadding(),
+                    ),
+                ) {
+                    item {
                     ActivationStatusCard(
                         status = status,
                         modifier = Modifier
@@ -131,14 +166,14 @@ internal fun PigLauncherApp(status: ModuleStatus, service: XposedService?) {
                             .padding(horizontal = 12.dp),
                     )
                 }
-                item {
-                    SmallTitle(
+                    item {
+                        SmallTitle(
                         text = stringResource(R.string.feature_section_title),
                     )
                 }
 
-                item {
-                    Card(
+                    item {
+                        Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp)
@@ -216,8 +251,8 @@ internal fun PigLauncherApp(status: ModuleStatus, service: XposedService?) {
                     }
                 }
 
-                item {
-                    Card(
+                    item {
+                        Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp)
@@ -236,6 +271,7 @@ internal fun PigLauncherApp(status: ModuleStatus, service: XposedService?) {
                         )
                     }
                 }
+            }
             }
 
             OverlayDialog(

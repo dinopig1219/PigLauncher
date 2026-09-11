@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dinopig.piglauncher.effect.BgEffectBackground
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -57,10 +58,8 @@ import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurBlendMode
 import top.yukonga.miuix.kmp.blur.BlurColors
 import top.yukonga.miuix.kmp.blur.BlurDefaults
-import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.blur.layerBackdrop
-import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
@@ -99,8 +98,8 @@ private fun AboutPage(
     val scrollBehavior = MiuixScrollBehavior()
     val lazyListState = rememberLazyListState()
     var logoSpacerHeightPx by remember { mutableStateOf(0) }
-    val backdrop = rememberLayerBackdrop()
     val blurSupported = remember { isRuntimeShaderSupported() }
+    val topBarBackdrop = rememberBlurBackdrop(blurSupported)
 
     val scrollProgress by remember {
         derivedStateOf {
@@ -119,61 +118,74 @@ private fun AboutPage(
         }
     }
 
+    val collapsed by remember {
+        derivedStateOf { scrollProgress >= 0.999f }
+    }
+    val blurActive by remember(topBarBackdrop) {
+        derivedStateOf { topBarBackdrop != null && scrollProgress >= 0.999f }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MiuixTheme.colorScheme.surface),
     ) {
-        BgEffectBackground(
-            dynamicBackground = true,
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    alpha = 1f - scrollProgress
-                }
-                .layerBackdrop(backdrop),
-        ) { }
-
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
-                TopAppBar(
-                    title = stringResource(R.string.about_title),
-                    largeTitle = "",
-                    scrollBehavior = scrollBehavior,
-                    color = if (scrollProgress > 0.99f) {
-                        MiuixTheme.colorScheme.surface
-                    } else {
-                        Color.Transparent
-                    },
-                    titleColor = MiuixTheme.colorScheme.onSurface.copy(
-                        alpha = scrollProgress,
-                    ),
-                    navigationIcon = {
-                        IconButton(
-                            onClick = onBack,
-                        ) {
-                            Icon(
-                                imageVector = MiuixIcons.Back,
-                                contentDescription = stringResource(R.string.back),
-                                tint = MiuixTheme.colorScheme.onBackground,
-                            )
-                        }
-                    },
-                )
+                val barColor = if (blurActive) {
+                    Color.Transparent
+                } else if (collapsed) {
+                    MiuixTheme.colorScheme.surface
+                } else {
+                    Color.Transparent
+                }
+
+                BlurredBar(
+                    backdrop = topBarBackdrop,
+                    blurEnabled = blurActive,
+                ) {
+                    TopAppBar(
+                        title = stringResource(R.string.about_title),
+                        largeTitle = "",
+                        scrollBehavior = scrollBehavior,
+                        color = barColor,
+                        titleColor = MiuixTheme.colorScheme.onSurface.copy(
+                            alpha = scrollProgress,
+                        ),
+                        navigationIcon = {
+                            IconButton(
+                                onClick = onBack,
+                            ) {
+                                Icon(
+                                    imageVector = MiuixIcons.Back,
+                                    contentDescription = stringResource(R.string.back),
+                                    tint = MiuixTheme.colorScheme.onBackground,
+                                )
+                            }
+                        },
+                    )
+                }
             },
         ) { padding ->
-            AboutScreen(
-                scrollBehavior = scrollBehavior,
-                padding = padding,
-                lazyListState = lazyListState,
-                scrollProgress = scrollProgress,
-                onLogoSpacerHeightChanged = {
-                    logoSpacerHeightPx = it
+            Box(
+                modifier = if (topBarBackdrop != null) {
+                    Modifier.layerBackdrop(topBarBackdrop)
+                } else {
+                    Modifier
                 },
-                backdrop = backdrop,
-                blurSupported = blurSupported,
-            )
+            ) {
+                AboutScreen(
+                    scrollBehavior = scrollBehavior,
+                    padding = padding,
+                    lazyListState = lazyListState,
+                    scrollProgress = scrollProgress,
+                    onLogoSpacerHeightChanged = {
+                        logoSpacerHeightPx = it
+                    },
+                    blurSupported = blurSupported,
+                )
+            }
         }
     }
 }
@@ -186,7 +198,6 @@ private fun AboutScreen(
     lazyListState: LazyListState,
     scrollProgress: Float,
     onLogoSpacerHeightChanged: (Int) -> Unit,
-    backdrop: LayerBackdrop,
     blurSupported: Boolean,
 ) {
     val context = LocalContext.current
@@ -201,6 +212,32 @@ private fun AboutScreen(
     val versionCode = packageInfo.longVersionCode
     val density = LocalDensity.current
     val isDark = isSystemInDarkTheme()
+    val backdrop = rememberBlurBackdrop(blurSupported)
+    val cardBlend = remember(isDark) {
+        if (isDark) {
+            listOf(
+                BlendColorEntry(
+                    Color(0x4DA9A9A9),
+                    BlurBlendMode.Luminosity,
+                ),
+                BlendColorEntry(
+                    Color(0x1A9C9C9C),
+                    BlurBlendMode.PlusDarker,
+                ),
+            )
+        } else {
+            listOf(
+                BlendColorEntry(
+                    Color(0x340034F9),
+                    BlurBlendMode.Overlay,
+                ),
+                BlendColorEntry(
+                    Color(0xB3FFFFFF),
+                    BlurBlendMode.HardLight,
+                ),
+            )
+        }
+    }
     val logoBlend = remember(isDark) {
         if (isDark) {
             listOf(
@@ -227,6 +264,17 @@ private fun AboutScreen(
         }
     }
     var logoHeightDp by remember { mutableStateOf(0.dp) }
+
+    BgEffectBackground(
+        dynamicBackground = true,
+        modifier = Modifier.fillMaxSize(),
+        bgModifier = if (backdrop != null) {
+            Modifier.layerBackdrop(backdrop)
+        } else {
+            Modifier
+        },
+        alpha = { 1f - scrollProgress },
+    ) { }
 
     Column(
         modifier = Modifier
@@ -285,7 +333,7 @@ private fun AboutScreen(
                     scaleY = 1f - projectNameProgress * 0.05f
                 }
                 .then(
-                    if (blurSupported) {
+                    if (backdrop != null) {
                         Modifier.textureBlur(
                             backdrop = backdrop,
                             shape = RoundedCornerShape(16.dp),
@@ -364,7 +412,30 @@ private fun AboutScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp)
-                            .padding(bottom = 12.dp),
+                            .padding(bottom = 12.dp)
+                            .then(
+                                if (backdrop != null) {
+                                    Modifier.textureBlur(
+                                        backdrop = backdrop,
+                                        shape = RoundedCornerShape(16.dp),
+                                        blurRadius = 60f,
+                                        noiseCoefficient = BlurDefaults.NoiseCoefficient,
+                                        colors = BlurDefaults.blurColors(
+                                            blendColors = cardBlend,
+                                        ),
+                                    )
+                                } else {
+                                    Modifier
+                                },
+                            ),
+                        colors = CardDefaults.defaultColors(
+                            color = if (backdrop != null) {
+                                Color.Transparent
+                            } else {
+                                MiuixTheme.colorScheme.surfaceContainer
+                            },
+                            contentColor = Color.Transparent,
+                        ),
                     ) {
                         ArrowPreference(
                             title = stringResource(R.string.about_view_source),
