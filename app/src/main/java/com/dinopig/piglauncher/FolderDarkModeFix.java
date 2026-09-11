@@ -37,7 +37,7 @@ final class FolderDarkModeFix {
     private FolderDarkModeFix() {
     }
 
-    static void install(XposedModule module, ClassLoader classLoader) {
+    static void install(XposedModule module, ClassLoader classLoader, FeatureSwitches features) {
         Class<?> largeFolderBackgroundClass = MainHook.findClass(
                 LARGE_FOLDER_BACKGROUND,
                 classLoader
@@ -47,6 +47,10 @@ final class FolderDarkModeFix {
             for (Constructor<?> constructor
                     : MainHook.findConstructors(largeFolderBackgroundClass)) {
                 module.hook(constructor).intercept(chain -> {
+                    if (!features.isFolderDarkModeEnabled()) {
+                        return chain.proceed();
+                    }
+
                     LauncherGate.enter();
                     try {
                         return chain.proceed();
@@ -69,7 +73,7 @@ final class FolderDarkModeFix {
             );
 
             if (refreshBackground != null) {
-                hookSmallFolderAppearance(module, refreshBackground);
+                hookSmallFolderAppearance(module, refreshBackground, features);
             }
 
             Method drawChild = MainHook.findMethod(
@@ -81,7 +85,7 @@ final class FolderDarkModeFix {
             );
 
             if (drawChild != null) {
-                hookSmallFolderAppearance(module, drawChild);
+                hookSmallFolderAppearance(module, drawChild, features);
             }
 
             Class<?> folderInfoClass = MainHook.findClass(
@@ -103,7 +107,7 @@ final class FolderDarkModeFix {
                 );
 
                 if (setup != null) {
-                    hookSmallFolderAppearance(module, setup);
+                    hookSmallFolderAppearance(module, setup, features);
                 }
             }
 
@@ -114,7 +118,7 @@ final class FolderDarkModeFix {
             );
 
             if (updateFolderIconBg != null) {
-                hookSmallFolderAppearance(module, updateFolderIconBg);
+                hookSmallFolderAppearance(module, updateFolderIconBg, features);
             }
         }
 
@@ -132,6 +136,10 @@ final class FolderDarkModeFix {
 
             if (isFolderBlurSupported != null) {
                 module.hook(isFolderBlurSupported).intercept(chain -> {
+                    if (!features.isFolderDarkModeEnabled()) {
+                        return chain.proceed();
+                    }
+
                     boolean enabled = Boolean.TRUE.equals(chain.getArg(0));
 
                     if (!enabled) {
@@ -161,6 +169,10 @@ final class FolderDarkModeFix {
 
             if (getFolderPickerSelectDefaultFolderBg != null) {
                 module.hook(getFolderPickerSelectDefaultFolderBg).intercept(chain -> {
+                    if (!features.isFolderDarkModeEnabled()) {
+                        return chain.proceed();
+                    }
+
                     LauncherGate.enter();
                     try {
                         return chain.proceed();
@@ -182,9 +194,14 @@ final class FolderDarkModeFix {
 
     private static void hookSmallFolderAppearance(
             XposedModule module,
-            Method method
+            Method method,
+            FeatureSwitches features
     ) {
         module.hook(method).intercept(chain -> {
+            if (!features.isFolderDarkModeEnabled()) {
+                return chain.proceed();
+            }
+
             enterSmallFolderAppearance();
             LauncherGate.enter();
             try {

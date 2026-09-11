@@ -15,24 +15,27 @@ final class AllWidgetAnimation {
     private AllWidgetAnimation() {
     }
 
-    static void install(XposedModule module, ClassLoader classLoader) {
+    static void install(XposedModule module, ClassLoader classLoader, FeatureSwitches features) {
         hookTransitionAnimation(
                 module,
                 classLoader,
-                LAUNCHER_WIDGET_VIEW
+                LAUNCHER_WIDGET_VIEW,
+                features
         );
 
         hookTransitionAnimation(
                 module,
                 classLoader,
-                MAML_WIDGET_VIEW
+                MAML_WIDGET_VIEW,
+                features
         );
     }
 
     private static void hookTransitionAnimation(
             XposedModule module,
             ClassLoader classLoader,
-            String className
+            String className,
+            FeatureSwitches features
     ) {
         Class<?> clazz = MainHook.findClass(
                 className,
@@ -52,7 +55,13 @@ final class AllWidgetAnimation {
             return;
         }
 
-        module.hook(method).intercept(chain -> Boolean.TRUE);
+        module.hook(method).intercept(chain -> {
+            if (!features.isAllWidgetAnimationEnabled()) {
+                return chain.proceed();
+            }
+
+            return Boolean.TRUE;
+        });
     }
 
     private static Method findMethodRecursive(

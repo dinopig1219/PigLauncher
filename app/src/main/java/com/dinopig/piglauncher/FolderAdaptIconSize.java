@@ -25,7 +25,7 @@ final class FolderAdaptIconSize {
     private FolderAdaptIconSize() {
     }
 
-    static void install(XposedModule module, ClassLoader classLoader) {
+    static void install(XposedModule module, ClassLoader classLoader, FeatureSwitches features) {
         Class<?> folderIconClass = MainHook.findClass(
                 FOLDER_ICON_2X2,
                 classLoader
@@ -90,6 +90,10 @@ final class FolderAdaptIconSize {
                     && createOrRemoveView != null) {
 
                 module.hook(createOrRemoveView).intercept(chain -> {
+                    if (!features.isFolderAdaptIconSizeEnabled()) {
+                        return chain.proceed();
+                    }
+
                     Object folderIcon = chain.getThisObject();
 
                     Object info = infoField.get(folderIcon);
@@ -140,6 +144,10 @@ final class FolderAdaptIconSize {
                     && addItemOnclickListener != null) {
 
                 module.hook(addItemOnclickListener).intercept(chain -> {
+                    if (!features.isFolderAdaptIconSizeEnabled()) {
+                        return chain.proceed();
+                    }
+
                     Object folderIcon = chain.getThisObject();
                     Object container = getPreviewContainer.invoke(folderIcon);
 
@@ -173,14 +181,16 @@ final class FolderAdaptIconSize {
                 module,
                 classLoader,
                 PREVIEW_CONTAINER_4,
-                4
+                4,
+                features
         );
 
         hookPreviewContainer(
                 module,
                 classLoader,
                 PREVIEW_CONTAINER_9,
-                9
+                9,
+                features
         );
     }
 
@@ -188,7 +198,8 @@ final class FolderAdaptIconSize {
             XposedModule module,
             ClassLoader classLoader,
             String className,
-            int num
+            int num,
+            FeatureSwitches features
     ) {
         Class<?> containerClass = MainHook.findClass(
                 className,
@@ -222,6 +233,10 @@ final class FolderAdaptIconSize {
         }
 
         module.hook(preSetup2x2).intercept(chain -> {
+            if (!features.isFolderAdaptIconSizeEnabled()) {
+                return chain.proceed();
+            }
+
             Object container = chain.getThisObject();
 
             Object realPvChildCountValue =

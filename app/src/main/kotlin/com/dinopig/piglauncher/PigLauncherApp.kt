@@ -44,6 +44,7 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TopAppBar
@@ -51,19 +52,39 @@ import top.yukonga.miuix.kmp.basic.rememberTopAppBarState
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
+import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.darkColorScheme
 import top.yukonga.miuix.kmp.theme.lightColorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
+import io.github.libxposed.service.XposedService
 
 @Composable
-internal fun PigLauncherApp(status: ModuleStatus) {
+internal fun PigLauncherApp(status: ModuleStatus, service: XposedService?) {
     val scrollBehavior = MiuixScrollBehavior(rememberTopAppBarState())
     val darkTheme = isSystemInDarkTheme()
     val coroutineScope = rememberCoroutineScope()
     var showRestartDialog by remember { mutableStateOf(false) }
     var showRootRequiredDialog by remember { mutableStateOf(false) }
     var restarting by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var featureSettings by remember(service) {
+        mutableStateOf(FeatureSettings.load(context, service))
+    }
+
+    fun updateFeature(
+        key: String,
+        value: Boolean,
+        update: (FeatureSettingsState) -> FeatureSettingsState,
+    ) {
+        featureSettings = update(featureSettings)
+        FeatureSettings.set(
+            context = context,
+            service = service,
+            key = key,
+            value = value,
+        )
+    }
 
     MiuixTheme(
         colors = if (darkTheme) darkColorScheme() else lightColorScheme(),
@@ -105,6 +126,89 @@ internal fun PigLauncherApp(status: ModuleStatus) {
                         status = status,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                }
+                item {
+                    SmallTitle(
+                        text = stringResource(R.string.feature_section_title),
+                    )
+                }
+
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp),
+                    ) {
+                        SwitchPreference(
+                            title = stringResource(R.string.feature_folder_dark_mode),
+                            summary = stringResource(R.string.feature_folder_dark_mode_summary),
+                            checked = featureSettings.folderDarkMode,
+                            onCheckedChange = { checked ->
+                                updateFeature(
+                                    key = FeatureKeys.FOLDER_DARK_MODE,
+                                    value = checked,
+                                ) {
+                                    it.copy(folderDarkMode = checked)
+                                }
+                            },
+                        )
+
+                        SwitchPreference(
+                            title = stringResource(R.string.feature_advanced_textures),
+                            summary = stringResource(R.string.feature_advanced_textures_summary),
+                            checked = featureSettings.advancedTextures,
+                            onCheckedChange = { checked ->
+                                updateFeature(
+                                    key = FeatureKeys.ADVANCED_TEXTURES,
+                                    value = checked,
+                                ) {
+                                    it.copy(advancedTextures = checked)
+                                }
+                            },
+                        )
+
+                        SwitchPreference(
+                            title = stringResource(R.string.feature_folder_adapt_icon_size),
+                            summary = stringResource(R.string.feature_folder_adapt_icon_size_summary),
+                            checked = featureSettings.folderAdaptIconSize,
+                            onCheckedChange = { checked ->
+                                updateFeature(
+                                    key = FeatureKeys.FOLDER_ADAPT_ICON_SIZE,
+                                    value = checked,
+                                ) {
+                                    it.copy(folderAdaptIconSize = checked)
+                                }
+                            },
+                        )
+
+                        SwitchPreference(
+                            title = stringResource(R.string.feature_predictive_back_progress),
+                            summary = stringResource(R.string.feature_predictive_back_progress_summary),
+                            checked = featureSettings.predictiveBackProgress,
+                            onCheckedChange = { checked ->
+                                updateFeature(
+                                    key = FeatureKeys.PREDICTIVE_BACK_PROGRESS,
+                                    value = checked,
+                                ) {
+                                    it.copy(predictiveBackProgress = checked)
+                                }
+                            },
+                        )
+
+                        SwitchPreference(
+                            title = stringResource(R.string.feature_all_widget_animation),
+                            summary = stringResource(R.string.feature_all_widget_animation_summary),
+                            checked = featureSettings.allWidgetAnimation,
+                            onCheckedChange = { checked ->
+                                updateFeature(
+                                    key = FeatureKeys.ALL_WIDGET_ANIMATION,
+                                    value = checked,
+                                ) {
+                                    it.copy(allWidgetAnimation = checked)
+                                }
+                            },
+                        )
+                    }
                 }
             }
 

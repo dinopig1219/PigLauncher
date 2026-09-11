@@ -28,7 +28,11 @@ final class AdvancedTexturesFix {
     private AdvancedTexturesFix() {
     }
 
-    static void install(XposedModule module, ClassLoader classLoader) {
+    static void install(
+            XposedModule module,
+            ClassLoader classLoader,
+            FeatureSwitches features
+    ) {
         Class<?> blurUtilitiesClass = MainHook.findClass(
                 BLUR_UTILITIES,
                 classLoader
@@ -42,7 +46,12 @@ final class AdvancedTexturesFix {
 
             if (isBlurSupported != null) {
                 module.hook(isBlurSupported).intercept(chain -> {
+                    if (!features.isAdvancedTexturesEnabled()) {
+                        return chain.proceed();
+                    }
+
                     LauncherGate.enter();
+
                     try {
                         return chain.proceed();
                     } finally {
@@ -56,19 +65,22 @@ final class AdvancedTexturesFix {
                 module,
                 VIEW_ROOT_IMPL_STUB_IMPL,
                 classLoader,
+                features,
                 Context.class
         );
 
         hookPassWindowBlurFilter(
                 module,
                 GET_CAMERA_OCCUPIER_STUB_IMPL,
-                classLoader
+                classLoader,
+                features
         );
 
         hookPassWindowBlurFilter(
                 module,
                 MIUI_CAMERA_COVERED_MANAGER,
-                classLoader
+                classLoader,
+                features
         );
     }
 
@@ -76,6 +88,7 @@ final class AdvancedTexturesFix {
             XposedModule module,
             String className,
             ClassLoader classLoader,
+            FeatureSwitches features,
             Class<?>... parameterTypes
     ) {
         Class<?> clazz = MainHook.findClass(
@@ -99,6 +112,10 @@ final class AdvancedTexturesFix {
 
         module.hook(method).intercept(chain -> {
             Object result = chain.proceed();
+
+            if (!features.isAdvancedTexturesEnabled()) {
+                return result;
+            }
 
             if (!(result instanceof String)) {
                 return result;
@@ -138,6 +155,7 @@ final class AdvancedTexturesFix {
             }
 
             packages.put(TARGET_PACKAGE);
+
             return root.toString();
         } catch (Throwable ignored) {
             return original;

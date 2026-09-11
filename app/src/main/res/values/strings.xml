@@ -7,9 +7,21 @@
     <string name="status_restart_scope">Activated, restart scope required</string>
     <string name="restart_poco_launcher">Restart Launcher</string>
     <string name="restart_poco_launcher_message">Are you sure you want to restart POCO Launcher?</string>
-    <string name="root_required_title">Root permission required</string>
-    <string name="root_required_message">Root permission required to restart launcher. Please grant Root access and try again.</string>
+    <string name="root_required_title">Missing Root permission</string>
+    <string name="root_required_message">Root permission required to restart. Please grant permission and try again.</string>
     <string name="cancel">Cancel</string>
     <string name="confirm">Confirm</string>
+
     <string name="xposed_api_version">API %1$d</string>
+    <string name="feature_section_title">Features</string>
+    <string name="feature_folder_dark_mode">Unlock dark folder</string>
+    <string name="feature_folder_dark_mode_summary">Description 1</string>
+    <string name="feature_advanced_textures">Unlock launcher advanced textures</string>
+    <string name="feature_advanced_textures_summary">Description 2</string>
+    <string name="feature_folder_adapt_icon_size">Fill app icons in large folder</string>
+    <string name="feature_folder_adapt_icon_size_summary">Description 3</string>
+    <string name="feature_predictive_back_progress">Fix predictive back gesture speed</string>
+    <string name="feature_predictive_back_progress_summary">Description 4</string>
+    <string name="feature_all_widget_animation">Unlock all widgets animation</string>
+    <string name="feature_all_widget_animation_summary">Description 5</string>
 </resources>

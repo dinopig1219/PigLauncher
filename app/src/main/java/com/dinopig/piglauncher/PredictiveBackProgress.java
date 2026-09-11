@@ -26,7 +26,7 @@ final class PredictiveBackProgress {
     private PredictiveBackProgress() {
     }
 
-    static void install(XposedModule module, ClassLoader classLoader) {
+    static void install(XposedModule module, ClassLoader classLoader, FeatureSwitches features) {
         Class<?> gestureStubViewClass = MainHook.findClass(
                 GESTURE_STUB_VIEW,
                 classLoader
@@ -140,6 +140,10 @@ final class PredictiveBackProgress {
         }
 
         module.hook(onSwipeProcess).intercept(chain -> {
+            if (!features.isPredictiveBackProgressEnabled()) {
+                return chain.proceed();
+            }
+
             Object progressValue = chain.getArg(0);
 
             if (!(progressValue instanceof Number)) {

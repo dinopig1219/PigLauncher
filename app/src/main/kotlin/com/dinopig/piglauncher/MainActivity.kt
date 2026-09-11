@@ -13,12 +13,16 @@ import io.github.libxposed.service.XposedService
 class MainActivity : ComponentActivity(), PigLauncher.ServiceStateListener {
 
     private var moduleStatus by mutableStateOf(ModuleStatus.DISABLED)
+    private var xposedService by mutableStateOf<XposedService?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            PigLauncherApp(status = moduleStatus)
+            PigLauncherApp(
+                status = moduleStatus,
+                service = xposedService,
+            )
         }
     }
 
@@ -29,6 +33,7 @@ class MainActivity : ComponentActivity(), PigLauncher.ServiceStateListener {
 
     override fun onResume() {
         super.onResume()
+        xposedService = PigLauncher.service
         refreshStatus(PigLauncher.service)
     }
 
@@ -39,6 +44,7 @@ class MainActivity : ComponentActivity(), PigLauncher.ServiceStateListener {
 
     override fun onServiceStateChanged(service: XposedService?) {
         runOnUiThread {
+            xposedService = service
             refreshStatus(service)
         }
     }
