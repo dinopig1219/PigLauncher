@@ -1,5 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PigLauncher</string>
-    <string name="xposed_description">A launcher hook for POCO Launcher.</string>
+    <string name="xposed_description">A hook module for POCO Launcher functionality.</string>
+    <string name="status_activated">Activated</string>
+    <string name="status_not_activated">Not activated</string>
+    <string name="status_restart_scope">Activated, restart scope required</string>
+    <string name="restart_poco_launcher">Restart Launcher</string>
+    <string name="restart_poco_launcher_message">Are you sure you want to restart POCO Launcher?</string>
+    <string name="root_required_title">Missing Root permission</string>
+    <string name="root_required_message">Root permission required to restart. Please grant permission and try again.</string>
+    <string name="cancel">Cancel</string>
+    <string name="confirm">Confirm</string>
+
+    <string name="xposed_api_version">API %1$d</string>
+    <string name="feature_section_title">Features</string>
+    <string name="feature_folder_dark_mode">Unlock Dark Folder</string>
+    <string name="feature_folder_dark_mode_summary">Folders will appear dark in Dark Mode</string>
+    <string name="feature_advanced_textures">Unlock Advanced Textures</string>
+    <string name="feature_advanced_textures_summary">Unlock missing Advanced Textures for launcher</string>
+    <string name="feature_folder_adapt_icon_size">Grid Folder Icon Fill</string>
+    <string name="feature_folder_adapt_icon_size_summary">When 2x2 and 3x3 grid folders have exactly 4 or 9 apps, the last icon expands into a clickable normal icon</string>
+    <string name="feature_predictive_back_progress">Fix Predictive Back Gesture Speed</string>
+    <string name="feature_predictive_back_progress_summary">Fix POCO Launcher abnormal predictive speed to match native speed</string>
+    <string name="feature_all_widget_animation">Unlock All Widgets Animation</string>
+    <string name="feature_all_widget_animation_summary">Enable back bouncing animation for all widgets</string>
+    <string name="about_title">About</string>
+    <string name="back">Back</string>
+    <string name="about_links">Links</string>
+    <string name="about_view_source">View source</string>
+    <string name="about_view_source_summary">Open the project repository</string>
+    <string name="about_check_update">Check for updates</string>
+    <string name="about_check_update_summary">Open GitHub Releases</string>
+    <string name="github">GitHub</string>
 </resources>

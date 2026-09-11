@@ -1,13 +1,16 @@
 package com.dinopig.piglauncher;
 
-import de.robv.android.xposed.IXposedHookLoadPackage;
-import de.robv.android.xposed.XC_MethodHook;
-import de.robv.android.xposed.XposedHelpers;
-import de.robv.android.xposed.callbacks.XC_LoadPackage;
+import java.lang.reflect.Constructor;
+import android.content.SharedPreferences;
 
-public final class MainHook implements IXposedHookLoadPackage {
+import java.lang.reflect.Method;
 
-    private static final String TARGET_PACKAGE = "com.mi.android.globallauncher";
+import io.github.libxposed.api.XposedModule;
+import io.github.libxposed.api.XposedModuleInterface.PackageReadyParam;
+
+public final class MainHook extends XposedModule {
+
+    static final String TARGET_PACKAGE = "com.mi.android.globallauncher";
 
     private static final String BUILD_CONFIG_UTILS =
             "com.miui.home.common.utils.BuildConfigUtils";
@@ -16,70 +19,112 @@ public final class MainHook implements IXposedHookLoadPackage {
             "com.miui.home.common.device.DeviceConfigs";
 
     @Override
-    public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam)
-            throws Throwable {
-
-        if (!TARGET_PACKAGE.equals(lpparam.packageName)) {
+    public void onPackageReady(PackageReadyParam param) {
+        if (!TARGET_PACKAGE.equals(param.getPackageName())) {
             return;
         }
 
-        Class<?> buildConfigUtilsClass = XposedHelpers.findClassIfExists(
+        ClassLoader classLoader = param.getClassLoader();
+
+        SharedPreferences preferences = null;
+
+        try {
+            preferences = getRemotePreferences(FeatureKeys.GROUP);
+        } catch (Throwable ignored) {
+        }
+
+        FeatureSwitches features = new FeatureSwitches(preferences);
+
+        Class<?> buildConfigUtilsClass = findClass(
                 BUILD_CONFIG_UTILS,
-                lpparam.classLoader
+                classLoader
         );
 
-        Class<?> deviceConfigsClass = XposedHelpers.findClassIfExists(
+        Class<?> deviceConfigsClass = findClass(
                 DEVICE_CONFIGS,
-                lpparam.classLoader
+                classLoader
         );
 
         if (buildConfigUtilsClass == null || deviceConfigsClass == null) {
             return;
         }
 
-        XposedHelpers.findAndHookMethod(
+        Method isMiuiLauncher = findMethod(
                 buildConfigUtilsClass,
-                "isMiuiLauncher",
-                new XC_MethodHook() {
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) {
-                        if (LauncherGate.isActive()) {
-                            param.setResult(Boolean.TRUE);
-                        }
-                    }
-                }
+                "isMiuiLauncher"
         );
 
-        XposedHelpers.findAndHookMethod(
+        if (isMiuiLauncher != null) {
+            hook(isMiuiLauncher).intercept(chain -> {
+                if (LauncherGate.isActive()) {
+                    return Boolean.TRUE;
+                }
+                return chain.proceed();
+            });
+        }
+
+        Method isDefaultMiuiIcon = findMethod(
                 deviceConfigsClass,
-                "isDefaultMiuiIcon",
-                new XC_MethodHook() {
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) {
-                        if (FolderDarkModeFix.isSmallFolderAppearanceActive()) {
-                            param.setResult(Boolean.TRUE);
-                        }
-                    }
-                }
+                "isDefaultMiuiIcon"
         );
 
-        XposedHelpers.findAndHookMethod(
+        if (isDefaultMiuiIcon != null) {
+            hook(isDefaultMiuiIcon).intercept(chain -> {
+                if (features.isFolderDarkModeEnabled() && FolderDarkModeFix.isSmallFolderAppearanceActive()) {
+                    return Boolean.TRUE;
+                }
+                return chain.proceed();
+            });
+        }
+
+        Method isUseDefaultFolderIcon = findMethod(
                 deviceConfigsClass,
                 "isUseDefaultFolderIcon",
-                boolean.class,
-                new XC_MethodHook() {
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) {
-                        if (FolderDarkModeFix.isSmallFolderBlurGateActive()
-                                && param.args.length > 0
-                                && Boolean.TRUE.equals(param.args[0])) {
-                            param.setResult(Boolean.TRUE);
-                        }
-                    }
-                }
+                boolean.class
         );
 
-        FolderDarkModeFix.install(lpparam.classLoader);
-        AdvancedTexturesFix.install(lpparam.classLoader);
+        if (isUseDefaultFolderIcon != null) {
+            hook(isUseDefaultFolderIcon).intercept(chain -> {
+                if (features.isFolderDarkModeEnabled() && FolderDarkModeFix.isSmallFolderBlurGateActive()
+                        && Boolean.TRUE.equals(chain.getArg(0))) {
+                    return Boolean.TRUE;
+                }
+                return chain.proceed();
+            });
+        }
+
+        FolderDarkModeFix.install(this, classLoader, features);
+        AdvancedTexturesFix.install(this, classLoader, features);
+        FolderAdaptIconSize.install(this, classLoader, features);
+        PredictiveBackProgress.install(this, classLoader, features);
+        AllWidgetAnimation.install(this, classLoader, features);
+    }
+
+    static Class<?> findClass(String className, ClassLoader classLoader) {
+        try {
+            return Class.forName(className, false, classLoader);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    static Method findMethod(
+            Class<?> clazz,
+            String methodName,
+            Class<?>... parameterTypes
+    ) {
+        try {
+            return clazz.getDeclaredMethod(methodName, parameterTypes);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    static Constructor<?>[] findConstructors(Class<?> clazz) {
+        try {
+            return clazz.getDeclaredConstructors();
+        } catch (Throwable ignored) {
+            return new Constructor<?>[0];
+        }
     }
 }

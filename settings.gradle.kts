@@ -16,4 +16,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "PigLauncher"
 include(":app")
-include(":xposed-api-stubs")
