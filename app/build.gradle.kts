@@ -14,8 +14,8 @@ android {
 
     defaultConfig {
         applicationId = "com.dinopig.piglauncher"
-        minSdk = 28
-        targetSdk = 35
+        minSdk = 33
+        targetSdk = 37
 
         versionCode = ciVersionCode
         versionName = releaseTag
