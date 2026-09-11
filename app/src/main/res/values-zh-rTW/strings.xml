@@ -14,7 +14,7 @@
 
     <string name="xposed_api_version">API %1$d</string>
     <string name="feature_section_title">功能</string>
-    <string name="feature_folder_dark_mode">解鎖深色文件夾</string>
+    <string name="feature_folder_dark_mode">解鎖深色資料夾</string>
     <string name="feature_folder_dark_mode_summary">在深色模式下資料夾將會是深色</string>
     <string name="feature_advanced_textures">解鎖高級材質</string>
     <string name="feature_advanced_textures_summary">解鎖被閹割的桌面高級材質</string>
