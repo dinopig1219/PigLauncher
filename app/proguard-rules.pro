@@ -1,0 +1,2 @@
+-keep public class com.dinopig.piglauncher.MainHook { *; }
+-dontwarn de.robv.android.xposed.**

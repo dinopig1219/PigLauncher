@@ -1,5 +1,6 @@
 package com.dinopig.piglauncher
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,14 +12,14 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Block
-import androidx.compose.material.icons.rounded.CheckCircleOutline
-import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -26,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
-import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
@@ -141,19 +141,94 @@ private fun ActivationStatusCard(
                 )
             }
 
-            Icon(
-                imageVector = when (status) {
-                    ModuleStatus.ACTIVE -> Icons.Rounded.CheckCircleOutline
-                    ModuleStatus.RESTART_REQUIRED -> Icons.Rounded.Warning
-                    ModuleStatus.DISABLED -> Icons.Rounded.Block
-                },
-                contentDescription = null,
-                tint = accentColor,
+            StatusSymbol(
+                status = status,
+                color = accentColor,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .offset(x = 27.dp, y = 31.dp)
                     .size(110.dp),
             )
+        }
+    }
+}
+
+@Composable
+private fun StatusSymbol(
+    status: ModuleStatus,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val stroke = size.minDimension * 0.075f
+
+        when (status) {
+            ModuleStatus.ACTIVE -> {
+                drawCircle(
+                    color = color,
+                    radius = size.minDimension * 0.34f,
+                    center = Offset(w * 0.5f, h * 0.5f),
+                    style = Stroke(width = stroke),
+                )
+                drawLine(
+                    color = color,
+                    start = Offset(w * 0.31f, h * 0.51f),
+                    end = Offset(w * 0.44f, h * 0.63f),
+                    strokeWidth = stroke,
+                    cap = StrokeCap.Round,
+                )
+                drawLine(
+                    color = color,
+                    start = Offset(w * 0.44f, h * 0.63f),
+                    end = Offset(w * 0.70f, h * 0.36f),
+                    strokeWidth = stroke,
+                    cap = StrokeCap.Round,
+                )
+            }
+
+            ModuleStatus.RESTART_REQUIRED -> {
+                val path = Path().apply {
+                    moveTo(w * 0.50f, h * 0.17f)
+                    lineTo(w * 0.84f, h * 0.78f)
+                    lineTo(w * 0.16f, h * 0.78f)
+                    close()
+                }
+                drawPath(
+                    path = path,
+                    color = color,
+                    style = Stroke(width = stroke, join = androidx.compose.ui.graphics.StrokeJoin.Round),
+                )
+                drawLine(
+                    color = color,
+                    start = Offset(w * 0.50f, h * 0.37f),
+                    end = Offset(w * 0.50f, h * 0.56f),
+                    strokeWidth = stroke,
+                    cap = StrokeCap.Round,
+                )
+                drawCircle(
+                    color = color,
+                    radius = stroke * 0.55f,
+                    center = Offset(w * 0.50f, h * 0.68f),
+                )
+            }
+
+            ModuleStatus.DISABLED -> {
+                drawCircle(
+                    color = color,
+                    radius = size.minDimension * 0.34f,
+                    center = Offset(w * 0.5f, h * 0.5f),
+                    style = Stroke(width = stroke),
+                )
+                drawLine(
+                    color = color,
+                    start = Offset(w * 0.28f, h * 0.72f),
+                    end = Offset(w * 0.72f, h * 0.28f),
+                    strokeWidth = stroke,
+                    cap = StrokeCap.Round,
+                )
+            }
         }
     }
 }

@@ -24,9 +24,9 @@ class MainActivity : ComponentActivity(), PigLauncherApplication.ServiceStateLis
         setContent {
             PigLauncherApp(
                 status = when {
-                    !serviceConnected -> ModuleStatus.DISABLED
                     hookInjected -> ModuleStatus.ACTIVE
-                    else -> ModuleStatus.RESTART_REQUIRED
+                    serviceConnected -> ModuleStatus.RESTART_REQUIRED
+                    else -> ModuleStatus.DISABLED
                 },
             )
         }
@@ -55,11 +55,7 @@ class MainActivity : ComponentActivity(), PigLauncherApplication.ServiceStateLis
     override fun onServiceStateChanged(service: XposedService?) {
         runOnUiThread {
             serviceConnected = service != null
-            if (service == null) {
-                hookInjected = false
-            } else {
-                hookStatusClient.query()
-            }
+            hookStatusClient.query()
         }
     }
 }

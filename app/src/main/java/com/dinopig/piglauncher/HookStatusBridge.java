@@ -55,6 +55,10 @@ final class HookStatusBridge {
         }
 
         Context appContext = context.getApplicationContext();
+        if (appContext == null) {
+            appContext = context;
+        }
+
         BroadcastReceiver receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context receiverContext, Intent intent) {

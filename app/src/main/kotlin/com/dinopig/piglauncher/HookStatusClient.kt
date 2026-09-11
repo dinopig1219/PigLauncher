@@ -20,7 +20,6 @@ internal class HookStatusClient(
 
     fun query() {
         cancel()
-        onStatusChanged(false)
 
         val nonce = UUID.randomUUID().toString()
         val statusReceiver = object : BroadcastReceiver() {
@@ -48,7 +47,7 @@ internal class HookStatusClient(
 
         val timeoutRunnable = Runnable { finish(false) }
         timeout = timeoutRunnable
-        handler.postDelayed(timeoutRunnable, 800L)
+        handler.postDelayed(timeoutRunnable, 1500L)
 
         val query = Intent(HookStatusBridge.QUERY_ACTION)
             .setPackage(HookStatusBridge.TARGET_PACKAGE)
