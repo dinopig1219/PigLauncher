@@ -15,13 +15,13 @@
     <string name="xposed_api_version">API %1$d</string>
     <string name="feature_section_title">Features</string>
     <string name="feature_folder_dark_mode">Unlock Dark Folder</string>
-    <string name="feature_folder_dark_mode_summary">Unlock nuked dark mode folder so they appear dark in Dark Mode</string>
+    <string name="feature_folder_dark_mode_summary">Folders will appear dark in Dark Mode</string>
     <string name="feature_advanced_textures">Unlock Advanced Textures</string>
-    <string name="feature_advanced_textures_summary">Unlock nuked Advanced Textures on launcher</string>
+    <string name="feature_advanced_textures_summary">Unlock missing Advanced Textures for launcher</string>
     <string name="feature_folder_adapt_icon_size">Grid Folder Icon Fill</string>
-    <string name="feature_folder_adapt_icon_size_summary">When 2x2 and 3x3 grid folders have exactly 4 or 9 apps, the last icon expands into a clickable normal size icon</string>
+    <string name="feature_folder_adapt_icon_size_summary">When 2x2 and 3x3 grid folders have exactly 4 or 9 apps, the last icon expands into a clickable normal icon</string>
     <string name="feature_predictive_back_progress">Fix Predictive Back Gesture Speed</string>
     <string name="feature_predictive_back_progress_summary">Fix POCO Launcher abnormal predictive speed to match native speed</string>
     <string name="feature_all_widget_animation">Unlock All Widgets Animation</string>
-    <string name="feature_all_widget_animation_summary">Enable back animations for all widgets</string>
+    <string name="feature_all_widget_animation_summary">Enable back bouncing animation for all widgets</string>
 </resources>
