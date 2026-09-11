@@ -190,12 +190,12 @@ private fun ActivationStatusCard(
 ) {
     val darkTheme = isSystemInDarkTheme()
     val context = LocalContext.current
-    val versionName = remember(context) {
+    val versionText = remember(context) {
         runCatching {
-            context.packageManager
+            val packageInfo = context.packageManager
                 .getPackageInfo(context.packageName, 0)
-                .versionName
-                .orEmpty()
+
+            "${packageInfo.versionName.orEmpty()} (${packageInfo.longVersionCode})"
         }.getOrDefault("")
     }
 
@@ -236,9 +236,9 @@ private fun ActivationStatusCard(
                 color = MiuixTheme.colorScheme.onSurface,
             )
 
-            if (versionName.isNotEmpty()) {
+            if (versionText.isNotEmpty()) {
                 Text(
-                    text = versionName,
+                    text = versionText,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(start = 16.dp, top = 43.dp),

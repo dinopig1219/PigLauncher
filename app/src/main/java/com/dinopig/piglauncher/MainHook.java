@@ -85,6 +85,7 @@ public final class MainHook extends XposedModule {
         FolderDarkModeFix.install(this, classLoader);
         AdvancedTexturesFix.install(this, classLoader);
         FolderAdaptIconSize.install(this, classLoader);
+        PredictiveBackProgress.install(this, classLoader);
     }
 
     static Class<?> findClass(String className, ClassLoader classLoader) {
