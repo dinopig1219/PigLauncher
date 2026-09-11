@@ -5,8 +5,9 @@ import android.content.Context;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import de.robv.android.xposed.XC_MethodHook;
-import de.robv.android.xposed.XposedHelpers;
+import java.lang.reflect.Method;
+
+import io.github.libxposed.api.XposedModule;
 
 final class AdvancedTexturesFix {
 
@@ -27,60 +28,57 @@ final class AdvancedTexturesFix {
     private AdvancedTexturesFix() {
     }
 
-    static void install(ClassLoader classLoader) {
-        Class<?> blurUtilitiesClass = XposedHelpers.findClassIfExists(
+    static void install(XposedModule module, ClassLoader classLoader) {
+        Class<?> blurUtilitiesClass = MainHook.findClass(
                 BLUR_UTILITIES,
                 classLoader
         );
 
         if (blurUtilitiesClass != null) {
-            try {
-                XposedHelpers.findAndHookMethod(
-                        blurUtilitiesClass,
-                        "isBlurSupported",
-                        createMiuiLauncherGateHook()
-                );
-            } catch (Throwable ignored) {
+            Method isBlurSupported = MainHook.findMethod(
+                    blurUtilitiesClass,
+                    "isBlurSupported"
+            );
+
+            if (isBlurSupported != null) {
+                module.hook(isBlurSupported).intercept(chain -> {
+                    LauncherGate.enter();
+                    try {
+                        return chain.proceed();
+                    } finally {
+                        LauncherGate.exit();
+                    }
+                });
             }
         }
 
         hookPassWindowBlurFilter(
+                module,
                 VIEW_ROOT_IMPL_STUB_IMPL,
                 classLoader,
                 Context.class
         );
 
         hookPassWindowBlurFilter(
+                module,
                 GET_CAMERA_OCCUPIER_STUB_IMPL,
                 classLoader
         );
 
         hookPassWindowBlurFilter(
+                module,
                 MIUI_CAMERA_COVERED_MANAGER,
                 classLoader
         );
     }
 
-    private static XC_MethodHook createMiuiLauncherGateHook() {
-        return new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
-                LauncherGate.enter();
-            }
-
-            @Override
-            protected void afterHookedMethod(MethodHookParam param) {
-                LauncherGate.exit();
-            }
-        };
-    }
-
     private static void hookPassWindowBlurFilter(
+            XposedModule module,
             String className,
             ClassLoader classLoader,
-            Object... parameterTypes
+            Class<?>... parameterTypes
     ) {
-        Class<?> clazz = XposedHelpers.findClassIfExists(
+        Class<?> clazz = MainHook.findClass(
                 className,
                 classLoader
         );
@@ -89,43 +87,25 @@ final class AdvancedTexturesFix {
             return;
         }
 
-        Object[] args = new Object[parameterTypes.length + 1];
-
-        System.arraycopy(
-                parameterTypes,
-                0,
-                args,
-                0,
-                parameterTypes.length
+        Method method = MainHook.findMethod(
+                clazz,
+                "getPassWindowBlurFilterData",
+                parameterTypes
         );
 
-        args[parameterTypes.length] =
-                new XC_MethodHook() {
-                    @Override
-                    protected void afterHookedMethod(MethodHookParam param) {
-                        Object result = param.getResult();
-
-                        if (!(result instanceof String)) {
-                            return;
-                        }
-
-                        String original = (String) result;
-                        String patched = patchPassWindowBlurFilter(original);
-
-                        if (!original.equals(patched)) {
-                            param.setResult(patched);
-                        }
-                    }
-                };
-
-        try {
-            XposedHelpers.findAndHookMethod(
-                    clazz,
-                    "getPassWindowBlurFilterData",
-                    args
-            );
-        } catch (Throwable ignored) {
+        if (method == null) {
+            return;
         }
+
+        module.hook(method).intercept(chain -> {
+            Object result = chain.proceed();
+
+            if (!(result instanceof String)) {
+                return result;
+            }
+
+            return patchPassWindowBlurFilter((String) result);
+        });
     }
 
     private static String patchPassWindowBlurFilter(String original) {

@@ -3,9 +3,10 @@ package com.dinopig.piglauncher;
 import android.graphics.Canvas;
 import android.view.View;
 
-import de.robv.android.xposed.XC_MethodHook;
-import de.robv.android.xposed.XposedBridge;
-import de.robv.android.xposed.XposedHelpers;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+
+import io.github.libxposed.api.XposedModule;
 
 final class FolderDarkModeFix {
 
@@ -36,126 +37,137 @@ final class FolderDarkModeFix {
     private FolderDarkModeFix() {
     }
 
-    static void install(ClassLoader classLoader) {
-        Class<?> largeFolderBackgroundClass = XposedHelpers.findClassIfExists(
+    static void install(XposedModule module, ClassLoader classLoader) {
+        Class<?> largeFolderBackgroundClass = MainHook.findClass(
                 LARGE_FOLDER_BACKGROUND,
                 classLoader
         );
 
         if (largeFolderBackgroundClass != null) {
-            XposedBridge.hookAllConstructors(
-                    largeFolderBackgroundClass,
-                    createMiuiLauncherGateHook()
-            );
+            for (Constructor<?> constructor
+                    : MainHook.findConstructors(largeFolderBackgroundClass)) {
+                module.hook(constructor).intercept(chain -> {
+                    LauncherGate.enter();
+                    try {
+                        return chain.proceed();
+                    } finally {
+                        LauncherGate.exit();
+                    }
+                });
+            }
         }
 
-        Class<?> smallFolderClass = XposedHelpers.findClassIfExists(
+        Class<?> smallFolderClass = MainHook.findClass(
                 SMALL_FOLDER,
                 classLoader
         );
 
         if (smallFolderClass != null) {
-            try {
-                XposedHelpers.findAndHookMethod(
-                        smallFolderClass,
-                        "refreshBackground",
-                        createSmallFolderAppearanceHook()
-                );
-            } catch (Throwable ignored) {
+            Method refreshBackground = MainHook.findMethod(
+                    smallFolderClass,
+                    "refreshBackground"
+            );
+
+            if (refreshBackground != null) {
+                hookSmallFolderAppearance(module, refreshBackground);
             }
 
-            try {
-                XposedHelpers.findAndHookMethod(
-                        smallFolderClass,
-                        "drawChild",
-                        Canvas.class,
-                        View.class,
-                        long.class,
-                        createSmallFolderAppearanceHook()
-                );
-            } catch (Throwable ignored) {
+            Method drawChild = MainHook.findMethod(
+                    smallFolderClass,
+                    "drawChild",
+                    Canvas.class,
+                    View.class,
+                    long.class
+            );
+
+            if (drawChild != null) {
+                hookSmallFolderAppearance(module, drawChild);
             }
 
-            Class<?> folderInfoClass = XposedHelpers.findClassIfExists(
+            Class<?> folderInfoClass = MainHook.findClass(
                     FOLDER_INFO,
                     classLoader
             );
 
-            Class<?> folderClass = XposedHelpers.findClassIfExists(
+            Class<?> folderClass = MainHook.findClass(
                     FOLDER,
                     classLoader
             );
 
             if (folderInfoClass != null && folderClass != null) {
-                try {
-                    XposedHelpers.findAndHookMethod(
-                            smallFolderClass,
-                            "setup",
-                            folderInfoClass,
-                            folderClass,
-                            createSmallFolderAppearanceHook()
-                    );
-                } catch (Throwable ignored) {
+                Method setup = MainHook.findMethod(
+                        smallFolderClass,
+                        "setup",
+                        folderInfoClass,
+                        folderClass
+                );
+
+                if (setup != null) {
+                    hookSmallFolderAppearance(module, setup);
                 }
             }
 
-            try {
-                XposedHelpers.findAndHookMethod(
-                        smallFolderClass,
-                        "updateFolderIconBg$lambda$2",
-                        smallFolderClass,
-                        createSmallFolderAppearanceHook()
-                );
-            } catch (Throwable ignored) {
+            Method updateFolderIconBg = MainHook.findMethod(
+                    smallFolderClass,
+                    "updateFolderIconBg$lambda$2",
+                    smallFolderClass
+            );
+
+            if (updateFolderIconBg != null) {
+                hookSmallFolderAppearance(module, updateFolderIconBg);
             }
         }
 
-        Class<?> blurUtilitiesClass = XposedHelpers.findClassIfExists(
+        Class<?> blurUtilitiesClass = MainHook.findClass(
                 BLUR_UTILITIES,
                 classLoader
         );
 
         if (blurUtilitiesClass != null) {
-            try {
-                XposedHelpers.findAndHookMethod(
-                        blurUtilitiesClass,
-                        "isFolderBlurSupported",
-                        boolean.class,
-                        new XC_MethodHook() {
-                            @Override
-                            protected void beforeHookedMethod(MethodHookParam param) {
-                                if (param.args.length > 0
-                                        && Boolean.TRUE.equals(param.args[0])) {
-                                    enterSmallFolderBlurGate();
-                                }
-                            }
+            Method isFolderBlurSupported = MainHook.findMethod(
+                    blurUtilitiesClass,
+                    "isFolderBlurSupported",
+                    boolean.class
+            );
 
-                            @Override
-                            protected void afterHookedMethod(MethodHookParam param) {
-                                if (param.args.length > 0
-                                        && Boolean.TRUE.equals(param.args[0])) {
-                                    exitSmallFolderBlurGate();
-                                }
-                            }
-                        }
-                );
-            } catch (Throwable ignored) {
+            if (isFolderBlurSupported != null) {
+                module.hook(isFolderBlurSupported).intercept(chain -> {
+                    boolean enabled = Boolean.TRUE.equals(chain.getArg(0));
+
+                    if (!enabled) {
+                        return chain.proceed();
+                    }
+
+                    enterSmallFolderBlurGate();
+                    try {
+                        return chain.proceed();
+                    } finally {
+                        exitSmallFolderBlurGate();
+                    }
+                });
             }
         }
 
-        Class<?> folderSheetClass = XposedHelpers.findClassIfExists(
+        Class<?> folderSheetClass = MainHook.findClass(
                 FOLDER_SHEET,
                 classLoader
         );
 
         if (folderSheetClass != null) {
-            try {
-                XposedHelpers.findAndHookMethod(
-                        folderSheetClass,
-                        "getFolderPickerSelectDefaultFolderBg",
-                        createMiuiLauncherGateHook()
-                );
-            } catch (Throwable ignored) {
+            Method getFolderPickerSelectDefaultFolderBg = MainHook.findMethod(
+                    folderSheetClass,
+                    "getFolderPickerSelectDefaultFolderBg"
+            );
+
+            if (getFolderPickerSelectDefaultFolderBg != null) {
+                module.hook(getFolderPickerSelectDefaultFolderBg).intercept(chain -> {
+                    LauncherGate.enter();
+                    try {
+                        return chain.proceed();
+                    } finally {
+                        LauncherGate.exit();
+                    }
+                });
             }
         }
     }
@@ -168,34 +180,20 @@ final class FolderDarkModeFix {
         return getSmallFolderBlurGateDepth() > 0;
     }
 
-    private static XC_MethodHook createMiuiLauncherGateHook() {
-        return new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
-                LauncherGate.enter();
-            }
-
-            @Override
-            protected void afterHookedMethod(MethodHookParam param) {
-                LauncherGate.exit();
-            }
-        };
-    }
-
-    private static XC_MethodHook createSmallFolderAppearanceHook() {
-        return new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) {
-                enterSmallFolderAppearance();
-                LauncherGate.enter();
-            }
-
-            @Override
-            protected void afterHookedMethod(MethodHookParam param) {
+    private static void hookSmallFolderAppearance(
+            XposedModule module,
+            Method method
+    ) {
+        module.hook(method).intercept(chain -> {
+            enterSmallFolderAppearance();
+            LauncherGate.enter();
+            try {
+                return chain.proceed();
+            } finally {
                 LauncherGate.exit();
                 exitSmallFolderAppearance();
             }
-        };
+        });
     }
 
     private static void enterSmallFolderAppearance() {

@@ -63,6 +63,12 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    packaging {
+        resources {
+            merges += "META-INF/xposed/*"
+        }
+    }
 }
 
 kotlin {
@@ -70,7 +76,7 @@ kotlin {
 }
 
 dependencies {
-    compileOnly(project(":xposed-api-stubs"))
+    compileOnly("io.github.libxposed:api:102.0.0")
 
     implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.compose.foundation:foundation:1.11.4")

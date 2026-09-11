@@ -4,7 +4,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -69,9 +68,6 @@ internal fun PigLauncherApp(status: ModuleStatus) {
                     )
                 }
 
-                item {
-                    Spacer(modifier = Modifier.height(720.dp))
-                }
             }
         }
     }
