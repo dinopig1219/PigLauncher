@@ -24,4 +24,12 @@
     <string name="feature_predictive_back_progress_summary">修复POCO桌面的预测性返回速度异常问题以匹配原生的速度</string>
     <string name="feature_all_widget_animation">解鎖所有小部件返回動畫</string>
     <string name="feature_all_widget_animation_summary">使所有小部件在返回的時候都會有弹跳動畫</string>
+    <string name="about_title">關於</string>
+    <string name="back">返回</string>
+    <string name="about_links">連結</string>
+    <string name="about_view_source">查看原始碼</string>
+    <string name="about_view_source_summary">開啟專案首頁</string>
+    <string name="about_check_update">檢查更新</string>
+    <string name="about_check_update_summary">查看 GitHub Releases</string>
+    <string name="github">GitHub</string>
 </resources>

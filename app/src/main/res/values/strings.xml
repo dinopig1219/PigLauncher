@@ -24,4 +24,12 @@
     <string name="feature_predictive_back_progress_summary">Fix POCO Launcher abnormal predictive speed to match native speed</string>
     <string name="feature_all_widget_animation">Unlock All Widgets Animation</string>
     <string name="feature_all_widget_animation_summary">Enable back bouncing animation for all widgets</string>
+    <string name="about_title">About</string>
+    <string name="back">Back</string>
+    <string name="about_links">Links</string>
+    <string name="about_view_source">View source</string>
+    <string name="about_view_source_summary">Open the project repository</string>
+    <string name="about_check_update">Check for updates</string>
+    <string name="about_check_update_summary">Open GitHub Releases</string>
+    <string name="github">GitHub</string>
 </resources>

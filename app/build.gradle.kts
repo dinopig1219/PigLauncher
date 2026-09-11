@@ -83,5 +83,6 @@ dependencies {
     implementation("top.yukonga.miuix.kmp:miuix-ui-android:0.9.3")
     implementation("top.yukonga.miuix.kmp:miuix-icons-android:0.9.3")
     implementation("top.yukonga.miuix.kmp:miuix-preference-android:0.9.3")
+    implementation("top.yukonga.miuix.kmp:miuix-blur-android:0.9.3")
     implementation("io.github.libxposed:service:102.0.0")
 }

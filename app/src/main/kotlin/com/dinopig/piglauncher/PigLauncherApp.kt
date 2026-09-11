@@ -1,5 +1,6 @@
 package com.dinopig.piglauncher
 
+import android.content.Intent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -52,6 +53,7 @@ import top.yukonga.miuix.kmp.basic.rememberTopAppBarState
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
+import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.darkColorScheme
@@ -209,6 +211,27 @@ internal fun PigLauncherApp(status: ModuleStatus, service: XposedService?) {
                                 ) {
                                     it.copy(allWidgetAnimation = checked)
                                 }
+                            },
+                        )
+                    }
+                }
+
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp)
+                            .padding(bottom = 12.dp),
+                    ) {
+                        ArrowPreference(
+                            title = stringResource(R.string.about_title),
+                            onClick = {
+                                context.startActivity(
+                                    Intent(
+                                        context,
+                                        AboutActivity::class.java,
+                                    ),
+                                )
                             },
                         )
                     }
