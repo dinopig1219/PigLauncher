@@ -5,7 +5,7 @@ import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
 import java.util.concurrent.CopyOnWriteArraySet
 
-class PigLauncherApplication : Application(), XposedServiceHelper.OnServiceListener {
+class PigLauncher : Application(), XposedServiceHelper.OnServiceListener {
 
     companion object {
         private val listeners = CopyOnWriteArraySet<ServiceStateListener>()

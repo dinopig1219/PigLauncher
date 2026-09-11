@@ -10,7 +10,7 @@ import androidx.compose.runtime.setValue
 import io.github.libxposed.service.HookedTarget
 import io.github.libxposed.service.XposedService
 
-class MainActivity : ComponentActivity(), PigLauncherApplication.ServiceStateListener {
+class MainActivity : ComponentActivity(), PigLauncher.ServiceStateListener {
 
     private var moduleStatus by mutableStateOf(ModuleStatus.DISABLED)
 
@@ -24,16 +24,16 @@ class MainActivity : ComponentActivity(), PigLauncherApplication.ServiceStateLis
 
     override fun onStart() {
         super.onStart()
-        PigLauncherApplication.addServiceStateListener(this, true)
+        PigLauncher.addServiceStateListener(this, true)
     }
 
     override fun onResume() {
         super.onResume()
-        refreshStatus(PigLauncherApplication.service)
+        refreshStatus(PigLauncher.service)
     }
 
     override fun onStop() {
-        PigLauncherApplication.removeServiceStateListener(this)
+        PigLauncher.removeServiceStateListener(this)
         super.onStop()
     }
 
