@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PigLauncher</string>
-    <string name="xposed_description">用於POCO Launcher的Hook功能。</string>
+    <string name="xposed_description">用於Hook POCO Launcher功能的模塊。</string>
     <string name="status_activated">已激活</string>
     <string name="status_not_activated">未激活</string>
     <string name="status_restart_scope">需重啟作用域</string>
