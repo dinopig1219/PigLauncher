@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PigLauncher</string>
-    <string name="xposed_description">Fix selected POCO Launcher upstream behavior.</string>
+    <string name="xposed_description">A hook module for POCO Launcher.</string>
     <string name="status_activated">Activated</string>
     <string name="status_not_activated">Not activated</string>
     <string name="status_restart_scope">Restart scope required</string>
