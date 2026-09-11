@@ -119,12 +119,14 @@ internal fun PigLauncherApp(status: ModuleStatus, service: XposedService?) {
                     .padding(paddingValues)
                     .overScrollVertical()
                     .nestedScroll(scrollBehavior.nestedScrollConnection),
-                contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 8.dp),
+                contentPadding = PaddingValues(top = 8.dp),
             ) {
                 item {
                     ActivationStatusCard(
                         status = status,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp),
                     )
                 }
                 item {
@@ -137,6 +139,7 @@ internal fun PigLauncherApp(status: ModuleStatus, service: XposedService?) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .padding(horizontal = 12.dp)
                             .padding(bottom = 12.dp),
                     ) {
                         SwitchPreference(
