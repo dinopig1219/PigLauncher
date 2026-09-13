@@ -15,7 +15,7 @@
     <string name="xposed_api_version">API %1$d</string>
     <string name="feature_section_title">Features</string>
     <string name="feature_folder_dark_mode">Unlock Dark Folder</string>
-    <string name="feature_folder_dark_mode_summary">Folders will appear dark in Dark Mode</string>
+    <string name="feature_folder_dark_mode_summary">Makes folders use dark appearance when in Dark Mode</string>
     <string name="feature_advanced_textures">Unlock Advanced Textures</string>
     <string name="feature_advanced_textures_summary">Unlock missing Advanced Textures for launcher</string>
     <string name="feature_folder_adapt_icon_size">Grid Folder Icon Fill</string>
