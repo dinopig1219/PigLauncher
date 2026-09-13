@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -34,6 +35,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Offset
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
@@ -551,44 +554,80 @@ private fun DeveloperRow(
         }.getOrNull()
     }
 
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (image != null) {
-            Image(
-                bitmap = image,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape),
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(MiuixTheme.colorScheme.surfaceContainer),
-            )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (image != null) {
+                Image(
+                    bitmap = image,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape),
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(MiuixTheme.colorScheme.surfaceContainer),
+                )
+            }
+
+            Column(
+                modifier = Modifier.padding(start = 16.dp),
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 18.sp,
+                    color = MiuixTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = summary,
+                    fontSize = 14.sp,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                )
+            }
         }
 
-        Column(
-            modifier = Modifier.padding(start = 16.dp),
-        ) {
-            Text(
-                text = title,
-                fontSize = 18.sp,
-                color = MiuixTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = summary,
-                fontSize = 14.sp,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-            )
-        }
+        DeveloperChevron(
+            modifier = Modifier.align(Alignment.CenterEnd),
+        )
+    }
+}
+
+@Composable
+private fun DeveloperChevron(
+    modifier: Modifier = Modifier,
+) {
+    val color = MiuixTheme.colorScheme.onSurfaceVariantActions
+
+    Canvas(
+        modifier = modifier.size(24.dp),
+    ) {
+        val strokeWidth = 2.dp.toPx()
+
+        drawLine(
+            color = color,
+            start = Offset(size.width * 0.38f, size.height * 0.27f),
+            end = Offset(size.width * 0.62f, size.height * 0.50f),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round,
+        )
+
+        drawLine(
+            color = color,
+            start = Offset(size.width * 0.62f, size.height * 0.50f),
+            end = Offset(size.width * 0.38f, size.height * 0.73f),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round,
+        )
     }
 }
