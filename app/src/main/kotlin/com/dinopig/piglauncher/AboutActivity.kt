@@ -1,15 +1,18 @@
 package com.dinopig.piglauncher
 
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -30,8 +34,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -405,6 +412,58 @@ private fun AboutScreen(
                         .padding(bottom = 16.dp),
                 ) {
                     SmallTitle(
+                        text = "开发者",
+                    )
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp)
+                            .padding(bottom = 12.dp)
+                            .then(
+                                if (backdrop != null) {
+                                    Modifier.textureBlur(
+                                        backdrop = backdrop,
+                                        shape = RoundedCornerShape(16.dp),
+                                        blurRadius = 60f,
+                                        noiseCoefficient = BlurDefaults.NoiseCoefficient,
+                                        colors = BlurDefaults.blurColors(
+                                            blendColors = cardBlend,
+                                        ),
+                                    )
+                                } else {
+                                    Modifier
+                                },
+                            ),
+                        colors = CardDefaults.defaultColors(
+                            color = if (backdrop != null) {
+                                Color.Transparent
+                            } else {
+                                MiuixTheme.colorScheme.surfaceContainer
+                            },
+                            contentColor = Color.Transparent,
+                        ),
+                    ) {
+                        DeveloperRow(
+                            imageFileName = "DinoPig.jpg",
+                            title = "DinoPig",
+                            summary = "作者",
+                            onClick = {
+                                uriHandler.openUri("https://github.com/dinopig1219")
+                            },
+                        )
+
+                        DeveloperRow(
+                            imageFileName = "Tim0320.jpg",
+                            title = "Tim0320",
+                            summary = "zhr-TW",
+                            onClick = {
+                                uriHandler.openUri("https://github.com/Tim0320")
+                            },
+                        )
+                    }
+
+                    SmallTitle(
                         text = stringResource(R.string.about_links),
                     )
 
@@ -473,5 +532,63 @@ private fun AboutScreen(
                 .align(Alignment.CenterEnd)
                 .fillMaxHeight(),
         )
+    }
+}
+
+@Composable
+private fun DeveloperRow(
+    imageFileName: String,
+    title: String,
+    summary: String,
+    onClick: () -> Unit,
+) {
+    val context = LocalContext.current
+    val image = remember(context, imageFileName) {
+        runCatching {
+            context.assets.open(imageFileName).use { input ->
+                BitmapFactory.decodeStream(input)?.asImageBitmap()
+            }
+        }.getOrNull()
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (image != null) {
+            Image(
+                bitmap = image,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape),
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(MiuixTheme.colorScheme.surfaceContainer),
+            )
+        }
+
+        Column(
+            modifier = Modifier.padding(start = 16.dp),
+        ) {
+            Text(
+                text = title,
+                fontSize = 18.sp,
+                color = MiuixTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = summary,
+                fontSize = 14.sp,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            )
+        }
     }
 }
