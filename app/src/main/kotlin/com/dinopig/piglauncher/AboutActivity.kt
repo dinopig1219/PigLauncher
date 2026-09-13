@@ -415,7 +415,7 @@ private fun AboutScreen(
                         .padding(bottom = 16.dp),
                 ) {
                     SmallTitle(
-                        text = "开发者",
+                        text = stringResource(R.string.about_developers),
                     )
 
                     Card(
@@ -450,7 +450,7 @@ private fun AboutScreen(
                         DeveloperRow(
                             imageFileName = "DinoPig.jpg",
                             title = "DinoPig",
-                            summary = "作者",
+                            summary = stringResource(R.string.about_author),
                             onClick = {
                                 uriHandler.openUri("https://github.com/dinopig1219")
                             },
@@ -521,6 +521,70 @@ private fun AboutScreen(
                             onClick = {
                                 uriHandler.openUri(
                                     "https://github.com/dinopig1219/PigLauncher/releases",
+                                )
+                            },
+                        )
+                    }
+
+                    SmallTitle(
+                        text = stringResource(R.string.about_references),
+                    )
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp)
+                            .padding(bottom = 12.dp)
+                            .then(
+                                if (backdrop != null) {
+                                    Modifier.textureBlur(
+                                        backdrop = backdrop,
+                                        shape = RoundedCornerShape(16.dp),
+                                        blurRadius = 60f,
+                                        noiseCoefficient = BlurDefaults.NoiseCoefficient,
+                                        colors = BlurDefaults.blurColors(
+                                            blendColors = cardBlend,
+                                        ),
+                                    )
+                                } else {
+                                    Modifier
+                                },
+                            ),
+                        colors = CardDefaults.defaultColors(
+                            color = if (backdrop != null) {
+                                Color.Transparent
+                            } else {
+                                MiuixTheme.colorScheme.surfaceContainer
+                            },
+                            contentColor = Color.Transparent,
+                        ),
+                    ) {
+                        ArrowPreference(
+                            title = "HowieHChen/XiaomiHelper",
+                            summary = "GPL-3.0",
+                            onClick = {
+                                uriHandler.openUri(
+                                    "https://github.com/HowieHChen/XiaomiHelper",
+                                )
+                            },
+                        )
+
+                        ArrowPreference(
+                            title = "ReChronoRain/HyperCeiler",
+                            summary = "AGPL-3.0",
+                            onClick = {
+                                uriHandler.openUri(
+                                    "https://github.com/ReChronoRain/HyperCeiler",
+                                )
+                            },
+                        )
+
+                        ArrowPreference(
+                            title = "compose-miuix-ui/miuix",
+                            summary = "Apache-2.0",
+                            onClick = {
+                                uriHandler.openUri(
+                                    "https://github.com/compose-miuix-ui/miuix",
                                 )
                             },
                         )

@@ -26,6 +26,9 @@
     <string name="feature_all_widget_animation_summary">使所有小部件在返回的时候都有弹跳动画</string>
     <string name="about_title">关于</string>
     <string name="back">返回</string>
+    <string name="about_developers">开发者</string>
+    <string name="about_author">作者</string>
+    <string name="about_references">引用</string>
     <string name="about_links">链接</string>
     <string name="about_view_source">查看源码</string>
     <string name="about_view_source_summary">打开项目主页</string>
