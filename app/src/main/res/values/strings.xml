@@ -24,6 +24,7 @@
     <string name="feature_predictive_back_progress_summary">Fix POCO Launcher abnormal predictive speed to match native speed</string>
     <string name="feature_all_widget_animation">Unlock All Widgets Animation</string>
     <string name="feature_all_widget_animation_summary">Enable back bouncing animation for all widgets</string>
+    <string name="hide_launcher_icon">Hide launcher icon</string>
     <string name="about_title">About</string>
     <string name="back">Back</string>
     <string name="about_developers">Developers</string>

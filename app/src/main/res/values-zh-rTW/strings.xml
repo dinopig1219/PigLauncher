@@ -24,6 +24,7 @@
     <string name="feature_predictive_back_progress_summary">修復POCO桌面的預測性返回速度異常問題以匹配原生的速度</string>
     <string name="feature_all_widget_animation">解鎖所有小部件返回動畫</string>
     <string name="feature_all_widget_animation_summary">使所有小部件在返回的時候都會有彈跳動畫</string>
+    <string name="hide_launcher_icon">隱藏桌面圖標</string>
     <string name="about_title">關於</string>
     <string name="back">返回</string>
     <string name="about_developers">開發者</string>
