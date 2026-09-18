@@ -27,6 +27,9 @@ jobs:
         with:
           packages: 'platform-tools'
 
+      - name: Install NDK and CMake
+        run: sdkmanager "ndk;30.0.14904198" "cmake;3.22.1"
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 9.3.1

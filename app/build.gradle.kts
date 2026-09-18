@@ -11,6 +11,7 @@ val releaseTag = System.getenv("APP_RELEASE_TAG")?.takeIf { it.isNotBlank() }
 android {
     namespace = "com.dinopig.piglauncher"
     compileSdk = 37
+    ndkVersion = "30.0.14904198"
 
     defaultConfig {
         applicationId = "io.github.dinopig1219.piglauncher"
@@ -21,6 +22,16 @@ android {
         versionName = releaseTag
             ?: commitSha?.let { "1.0-$it" }
             ?: "1.0"
+
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
+
+        externalNativeBuild {
+            cmake {
+                arguments += "-DANDROID_STL=none"
+            }
+        }
     }
 
     signingConfigs {
@@ -64,7 +75,17 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
+
     packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
         resources {
             merges += "META-INF/xposed/*"
         }
