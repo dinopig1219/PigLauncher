@@ -77,6 +77,9 @@ internal fun PigLauncherApp(status: ModuleStatus, service: XposedService?) {
     var featureSettings by remember(service) {
         mutableStateOf(FeatureSettings.load(context, service))
     }
+    var launcherIconHidden by remember {
+        mutableStateOf(LauncherIconSettings.isHidden(context))
+    }
 
     fun updateFeature(
         key: String,
@@ -250,6 +253,27 @@ internal fun PigLauncherApp(status: ModuleStatus, service: XposedService?) {
                         )
                     }
                 }
+
+                    item {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp)
+                                .padding(bottom = 12.dp),
+                        ) {
+                            SwitchPreference(
+                                title = stringResource(R.string.hide_launcher_icon),
+                                checked = launcherIconHidden,
+                                onCheckedChange = { hidden ->
+                                    LauncherIconSettings.setHidden(
+                                        context = context,
+                                        hidden = hidden,
+                                    )
+                                    launcherIconHidden = hidden
+                                },
+                            )
+                        }
+                    }
 
                     item {
                         Card(

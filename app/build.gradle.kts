@@ -13,7 +13,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.dinopig.piglauncher"
+        applicationId = "io.github.dinopig1219.piglauncher"
         minSdk = 33
         targetSdk = 37
 

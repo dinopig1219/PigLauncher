@@ -3,8 +3,6 @@ name: Build APK
 on:
   push:
     branches: [ main, ui-test ]
-    tags:
-      - '*'
   release:
     types: [published]
   workflow_dispatch:
@@ -25,7 +23,9 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
 
       - uses: gradle/actions/setup-gradle@v4
         with:
@@ -46,13 +46,13 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           APP_VERSION_CODE: ${{ github.run_number }}
           APP_COMMIT_SHA: ${{ github.sha }}
-          APP_RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+          APP_RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || '' }}
         run: gradle assembleDebug assembleRelease
 
       - name: Rename APKs
         run: |
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            VERSION_NAME="${GITHUB_REF_NAME}"
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            VERSION_NAME="${{ github.event.release.tag_name }}"
           else
             VERSION_NAME="1.0-${GITHUB_SHA::7}"
           fi
@@ -60,10 +60,10 @@ jobs:
           VERSION_CODE="${{ github.run_number }}"
 
           mv "app/build/outputs/apk/debug/app-debug.apk" \
-             "app/build/outputs/apk/debug/PigLauncher_${VERSION_NAME}(${VERSION_CODE})-debug.apk"
+            "app/build/outputs/apk/debug/PigLauncher_${VERSION_NAME}(${VERSION_CODE})-debug.apk"
 
           mv "app/build/outputs/apk/release/app-release.apk" \
-             "app/build/outputs/apk/release/PigLauncher_${VERSION_NAME}(${VERSION_CODE}).apk"
+            "app/build/outputs/apk/release/PigLauncher_${VERSION_NAME}(${VERSION_CODE}).apk"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -76,9 +76,10 @@ jobs:
           path: app/build/outputs/apk/release/*.apk
 
       - name: Upload APK to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event.release.tag_name }}
           files: app/build/outputs/apk/release/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -102,20 +103,16 @@ jobs:
           COMMIT_AUTHOR: ${{ github.event.head_commit.author.name }}
           COMMIT_URL: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
           BRANCH_NAME: ${{ github.ref_name }}
-
         run: |
           APK_PATH=$(find release-apk -name "*.apk" | head -n1)
-
           RAW_MESSAGE="${COMMIT_MESSAGE:-Manual trigger}"
           AUTHOR="${COMMIT_AUTHOR:-${{ github.actor }}}"
-
           SAFE_MESSAGE=$(printf '%s' "$RAW_MESSAGE" | tr -d '`')
-
           CAPTION=$(printf 'New push to GitHub\n\x60\x60\x60Branch:\n%s\x60\x60\x60\n\x60\x60\x60Commits:\n%s\x60\x60\x60by %s\n[Commit](%s)' \
             "$BRANCH_NAME" "$SAFE_MESSAGE" "$AUTHOR" "$COMMIT_URL")
 
           curl -F "chat_id=${TELEGRAM_CHAT_ID}" \
-               -F "document=@${APK_PATH}" \
-               -F "parse_mode=Markdown" \
-               -F "caption=${CAPTION}" \
-               "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument"
+            -F "document=@${APK_PATH}" \
+            -F "parse_mode=Markdown" \
+            -F "caption=${CAPTION}" \
+            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument"

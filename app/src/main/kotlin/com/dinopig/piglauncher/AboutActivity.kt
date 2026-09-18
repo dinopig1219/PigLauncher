@@ -1,15 +1,19 @@
 package com.dinopig.piglauncher
 
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -30,8 +35,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -405,6 +415,58 @@ private fun AboutScreen(
                         .padding(bottom = 16.dp),
                 ) {
                     SmallTitle(
+                        text = stringResource(R.string.about_developers),
+                    )
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp)
+                            .padding(bottom = 12.dp)
+                            .then(
+                                if (backdrop != null) {
+                                    Modifier.textureBlur(
+                                        backdrop = backdrop,
+                                        shape = RoundedCornerShape(16.dp),
+                                        blurRadius = 60f,
+                                        noiseCoefficient = BlurDefaults.NoiseCoefficient,
+                                        colors = BlurDefaults.blurColors(
+                                            blendColors = cardBlend,
+                                        ),
+                                    )
+                                } else {
+                                    Modifier
+                                },
+                            ),
+                        colors = CardDefaults.defaultColors(
+                            color = if (backdrop != null) {
+                                Color.Transparent
+                            } else {
+                                MiuixTheme.colorScheme.surfaceContainer
+                            },
+                            contentColor = Color.Transparent,
+                        ),
+                    ) {
+                        DeveloperRow(
+                            imageFileName = "DinoPig.jpg",
+                            title = "DinoPig",
+                            summary = stringResource(R.string.about_author),
+                            onClick = {
+                                uriHandler.openUri("https://github.com/dinopig1219")
+                            },
+                        )
+
+                        DeveloperRow(
+                            imageFileName = "Tim0320.jpg",
+                            title = "Tim0320",
+                            summary = "zhr-TW",
+                            onClick = {
+                                uriHandler.openUri("https://github.com/Tim0320")
+                            },
+                        )
+                    }
+
+                    SmallTitle(
                         text = stringResource(R.string.about_links),
                     )
 
@@ -463,6 +525,70 @@ private fun AboutScreen(
                             },
                         )
                     }
+
+                    SmallTitle(
+                        text = stringResource(R.string.about_references),
+                    )
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp)
+                            .padding(bottom = 12.dp)
+                            .then(
+                                if (backdrop != null) {
+                                    Modifier.textureBlur(
+                                        backdrop = backdrop,
+                                        shape = RoundedCornerShape(16.dp),
+                                        blurRadius = 60f,
+                                        noiseCoefficient = BlurDefaults.NoiseCoefficient,
+                                        colors = BlurDefaults.blurColors(
+                                            blendColors = cardBlend,
+                                        ),
+                                    )
+                                } else {
+                                    Modifier
+                                },
+                            ),
+                        colors = CardDefaults.defaultColors(
+                            color = if (backdrop != null) {
+                                Color.Transparent
+                            } else {
+                                MiuixTheme.colorScheme.surfaceContainer
+                            },
+                            contentColor = Color.Transparent,
+                        ),
+                    ) {
+                        ArrowPreference(
+                            title = "HowieHChen/XiaomiHelper",
+                            summary = "GPL-3.0",
+                            onClick = {
+                                uriHandler.openUri(
+                                    "https://github.com/HowieHChen/XiaomiHelper",
+                                )
+                            },
+                        )
+
+                        ArrowPreference(
+                            title = "ReChronoRain/HyperCeiler",
+                            summary = "AGPL-3.0",
+                            onClick = {
+                                uriHandler.openUri(
+                                    "https://github.com/ReChronoRain/HyperCeiler",
+                                )
+                            },
+                        )
+
+                        ArrowPreference(
+                            title = "compose-miuix-ui/miuix",
+                            summary = "Apache-2.0",
+                            onClick = {
+                                uriHandler.openUri(
+                                    "https://github.com/compose-miuix-ui/miuix",
+                                )
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -472,6 +598,100 @@ private fun AboutScreen(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
                 .fillMaxHeight(),
+        )
+    }
+}
+
+@Composable
+private fun DeveloperRow(
+    imageFileName: String,
+    title: String,
+    summary: String,
+    onClick: () -> Unit,
+) {
+    val context = LocalContext.current
+    val image = remember(context, imageFileName) {
+        runCatching {
+            context.assets.open(imageFileName).use { input ->
+                BitmapFactory.decodeStream(input)?.asImageBitmap()
+            }
+        }.getOrNull()
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (image != null) {
+                Image(
+                    bitmap = image,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape),
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(MiuixTheme.colorScheme.surfaceContainer),
+                )
+            }
+
+            Column(
+                modifier = Modifier.padding(start = 16.dp),
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 18.sp,
+                    color = MiuixTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = summary,
+                    fontSize = 14.sp,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                )
+            }
+        }
+
+        DeveloperChevron(
+            modifier = Modifier.align(Alignment.CenterEnd),
+        )
+    }
+}
+
+@Composable
+private fun DeveloperChevron(
+    modifier: Modifier = Modifier,
+) {
+    val color = MiuixTheme.colorScheme.onSurfaceVariantActions
+
+    Canvas(
+        modifier = modifier.size(24.dp),
+    ) {
+        val strokeWidth = 2.dp.toPx()
+
+        drawLine(
+            color = color,
+            start = Offset(size.width * 0.38f, size.height * 0.27f),
+            end = Offset(size.width * 0.62f, size.height * 0.50f),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round,
+        )
+
+        drawLine(
+            color = color,
+            start = Offset(size.width * 0.62f, size.height * 0.50f),
+            end = Offset(size.width * 0.38f, size.height * 0.73f),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round,
         )
     }
 }
