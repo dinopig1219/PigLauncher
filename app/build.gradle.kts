@@ -19,7 +19,7 @@ android {
 
         versionCode = ciVersionCode
         versionName = releaseTag
-            ?: commitSha?.let { "1.0-$it" }
+            ?: commitSha?.let { "1.3-$it" }
             ?: "1.0"
     }
 
