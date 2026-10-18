@@ -32,7 +32,7 @@ The module only targets POCO Launcher (`com.mi.android.globallauncher`).
 
 Initial development and testing are based on:
 
-`RELEASE-6.01.05.2407-06081949`
+`RELEASE-6.01.05.2407-06081949, RELEASE-7.50.06.2592-09011644`
 
 Tested on OS3. Compatibility with other POCO Launcher versions and system versions may vary.
 
