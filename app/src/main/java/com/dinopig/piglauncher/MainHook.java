@@ -98,6 +98,7 @@ public final class MainHook extends XposedModule {
         FolderAdaptIconSize.install(this, classLoader, features);
         PredictiveBackProgress.install(this, classLoader, features);
         AllWidgetAnimation.install(this, classLoader, features);
+        ShowAllHideApp.install(this, classLoader);
     }
 
     static Class<?> findClass(String className, ClassLoader classLoader) {

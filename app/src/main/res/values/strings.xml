@@ -36,4 +36,6 @@
     <string name="about_check_update">Check for updates</string>
     <string name="about_check_update_summary">Open GitHub Releases</string>
     <string name="github">GitHub</string>
+    <string name="feature_hide_app_manage">Hidden Apps Manager</string>
+    <string name="feature_hide_app_manage_summary">Open the launcher\'s hide-apps page, all apps unlocked</string>
 </resources>

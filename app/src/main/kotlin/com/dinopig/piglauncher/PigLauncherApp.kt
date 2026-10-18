@@ -64,6 +64,10 @@ import top.yukonga.miuix.kmp.theme.lightColorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import io.github.libxposed.service.XposedService
 
+private const val TARGET_PACKAGE = "com.mi.android.globallauncher"
+private const val HIDE_APP_ACTIVITY = "com.miui.home.settings.AllHideAppActivity"
+private const val HIDE_APP_ACTION = "com.miui.home.settings.action.ALL_HIDE_APP_SETTINGS"
+
 @Composable
 internal fun PigLauncherApp(status: ModuleStatus, service: XposedService?) {
     val topAppBarState = rememberTopAppBarState()
@@ -249,6 +253,18 @@ internal fun PigLauncherApp(status: ModuleStatus, service: XposedService?) {
                                 ) {
                                     it.copy(allWidgetAnimation = checked)
                                 }
+                            },
+                        )
+
+                        ArrowPreference(
+                            title = stringResource(R.string.feature_hide_app_manage),
+                            summary = stringResource(R.string.feature_hide_app_manage_summary),
+                            onClick = {
+                                context.startActivity(
+                                    Intent(HIDE_APP_ACTION)
+                                        .setClassName(TARGET_PACKAGE, HIDE_APP_ACTIVITY)
+                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                )
                             },
                         )
                     }

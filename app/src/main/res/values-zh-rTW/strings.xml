@@ -36,4 +36,6 @@
     <string name="about_check_update">檢查更新</string>
     <string name="about_check_update_summary">查看 GitHub Releases</string>
     <string name="github">GitHub</string>
+    <string name="feature_hide_app_manage">隱藏應用管理</string>
+    <string name="feature_hide_app_manage_summary">開啟桌面的隱藏應用管理頁，已解鎖顯示全部應用</string>
 </resources>
