@@ -24,8 +24,8 @@
     <string name="feature_predictive_back_progress_summary">修復預測性返回速度異常以還原原生的速度</string>
     <string name="feature_all_widget_animation">解鎖所有小部件返回動畫</string>
     <string name="feature_all_widget_animation_summary">使所有小部件在返回的時候都會有彈跳動畫</string>
-    <string name="feature_hide_app_manage">隱藏應用管理</string>
-    <string name="feature_hide_app_manage_summary">開啟桌面的隱藏應用管理頁，已解鎖顯示全部應用</string>
+    <string name="feature_hide_app_manage">隱藏圖示捷徑</string>
+    <string name="feature_hide_app_manage_summary">隱藏桌面的捷徑，已解鎖自訂全部應用</string>
     <string name="hide_launcher_icon">隱藏桌面圖標</string>
     <string name="about_title">關於</string>
     <string name="back">返回</string>
