@@ -25,6 +25,9 @@ The module only targets POCO Launcher (`com.mi.android.globallauncher`).
 - Unlock All Widgets Animation
   - Enables the back bouncing animation for all widgets.
 
+- Hide Clear Recents Button
+  - Hide the clear button in recents.
+
 - Hidden Apps Manager
   - Able to hide any app icon from launcher.
 
