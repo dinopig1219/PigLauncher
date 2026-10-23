@@ -9,6 +9,7 @@ internal data class FeatureSettingsState(
     val folderAdaptIconSize: Boolean = false,
     val predictiveBackProgress: Boolean = false,
     val allWidgetAnimation: Boolean = false,
+    val hideRecentsCleanButton: Boolean = false,
 )
 
 internal object FeatureSettings {
@@ -49,6 +50,7 @@ internal object FeatureSettings {
             folderAdaptIconSize = read(FeatureKeys.FOLDER_ADAPT_ICON_SIZE),
             predictiveBackProgress = read(FeatureKeys.PREDICTIVE_BACK_PROGRESS),
             allWidgetAnimation = read(FeatureKeys.ALL_WIDGET_ANIMATION),
+            hideRecentsCleanButton = read(FeatureKeys.HIDE_RECENTS_CLEAN_BUTTON),
         )
 
         localEditor.apply()

@@ -256,6 +256,20 @@ internal fun PigLauncherApp(status: ModuleStatus, service: XposedService?) {
                             },
                         )
 
+                        SwitchPreference(
+                            title = stringResource(R.string.feature_hide_recents_clean_button),
+                            summary = stringResource(R.string.feature_hide_recents_clean_button_summary),
+                            checked = featureSettings.hideRecentsCleanButton,
+                            onCheckedChange = { checked ->
+                                updateFeature(
+                                    key = FeatureKeys.HIDE_RECENTS_CLEAN_BUTTON,
+                                    value = checked,
+                                ) {
+                                    it.copy(hideRecentsCleanButton = checked)
+                                }
+                            },
+                        )
+
                         ArrowPreference(
                             title = stringResource(R.string.feature_hide_app_manage),
                             summary = stringResource(R.string.feature_hide_app_manage_summary),

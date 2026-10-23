@@ -99,6 +99,7 @@ public final class MainHook extends XposedModule {
         PredictiveBackProgress.install(this, classLoader, features);
         AllWidgetAnimation.install(this, classLoader, features);
         ShowAllHideApp.install(this, classLoader);
+        HideRecentsCleanButton.install(this, classLoader, features);
     }
 
     static Class<?> findClass(String className, ClassLoader classLoader) {

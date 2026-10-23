@@ -12,6 +12,7 @@ final class FeatureSwitches {
     private volatile boolean folderAdaptIconSize = false;
     private volatile boolean predictiveBackProgress = false;
     private volatile boolean allWidgetAnimation = false;
+    private volatile boolean hideRecentsCleanButton = false;
 
     FeatureSwitches(SharedPreferences preferences) {
         this.preferences = preferences;
@@ -44,6 +45,10 @@ final class FeatureSwitches {
         return allWidgetAnimation;
     }
 
+    boolean isHideRecentsCleanButtonEnabled() {
+        return hideRecentsCleanButton;
+    }
+
     private void reload(SharedPreferences preferences) {
         if (preferences == null) {
             return;
@@ -71,6 +76,11 @@ final class FeatureSwitches {
 
         allWidgetAnimation = preferences.getBoolean(
                 FeatureKeys.ALL_WIDGET_ANIMATION,
+                false
+        );
+
+        hideRecentsCleanButton = preferences.getBoolean(
+                FeatureKeys.HIDE_RECENTS_CLEAN_BUTTON,
                 false
         );
     }
