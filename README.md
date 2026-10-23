@@ -4,7 +4,7 @@ An LSPosed module for providing modifications for POCO Launcher. Learn more abou
 
 The module only targets POCO Launcher (`com.mi.android.globallauncher`).
 
-[![Latest release](https://img.shields.io/github/v/release/dinopig1219/PigLauncher?label=Release&logo=github)](https://github.com/dinopig1219/PigLauncher/releases/latest)
+[![Latest release](https://img.shields.io/github/v/release/dinopig1219/PigLauncher?label=Release&logo=github)](https://github.com/dinopig1219/PigLauncher/releases/latest) [![GitHub](https://img.shields.io/badge/GitHub-Repository-blue?logo=github)](https://github.com/dinopig1219/PigLauncher)
 
 ## Features
 
