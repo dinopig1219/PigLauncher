@@ -24,7 +24,7 @@
     <string name="feature_predictive_back_progress_summary">修復預測性返回速度異常以還原原生的速度</string>
     <string name="feature_all_widget_animation">解鎖所有小部件返回動畫</string>
     <string name="feature_all_widget_animation_summary">使所有小部件在返回的時候都會有彈跳動畫</string>
-    <string name="feature_hide_recents_clean_button">隱藏清理按鈕</string>
+    <string name="feature_hide_recents_clean_button">隱藏清除按鈕</string>
     <string name="feature_hide_recents_clean_button_summary">隱藏最近任務介面的清除全部按鈕</string>
     <string name="feature_hide_status_bar_clock">隱藏狀態列時鐘</string>
     <string name="feature_hide_status_bar_clock_summary">在桌面時隱藏狀態列時鐘</string>
