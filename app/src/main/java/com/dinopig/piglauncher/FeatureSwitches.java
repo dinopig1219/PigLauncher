@@ -13,6 +13,7 @@ final class FeatureSwitches {
     private volatile boolean predictiveBackProgress = false;
     private volatile boolean allWidgetAnimation = false;
     private volatile boolean hideRecentsCleanButton = false;
+    private volatile boolean hideStatusBarClock = false;
 
     FeatureSwitches(SharedPreferences preferences) {
         this.preferences = preferences;
@@ -49,6 +50,10 @@ final class FeatureSwitches {
         return hideRecentsCleanButton;
     }
 
+    boolean isHideStatusBarClockEnabled() {
+        return hideStatusBarClock;
+    }
+
     private void reload(SharedPreferences preferences) {
         if (preferences == null) {
             return;
@@ -81,6 +86,11 @@ final class FeatureSwitches {
 
         hideRecentsCleanButton = preferences.getBoolean(
                 FeatureKeys.HIDE_RECENTS_CLEAN_BUTTON,
+                false
+        );
+
+        hideStatusBarClock = preferences.getBoolean(
+                FeatureKeys.HIDE_STATUS_BAR_CLOCK,
                 false
         );
     }

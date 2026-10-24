@@ -10,6 +10,7 @@ internal data class FeatureSettingsState(
     val predictiveBackProgress: Boolean = false,
     val allWidgetAnimation: Boolean = false,
     val hideRecentsCleanButton: Boolean = false,
+    val hideStatusBarClock: Boolean = false,
 )
 
 internal object FeatureSettings {
@@ -51,6 +52,7 @@ internal object FeatureSettings {
             predictiveBackProgress = read(FeatureKeys.PREDICTIVE_BACK_PROGRESS),
             allWidgetAnimation = read(FeatureKeys.ALL_WIDGET_ANIMATION),
             hideRecentsCleanButton = read(FeatureKeys.HIDE_RECENTS_CLEAN_BUTTON),
+            hideStatusBarClock = read(FeatureKeys.HIDE_STATUS_BAR_CLOCK),
         )
 
         localEditor.apply()
