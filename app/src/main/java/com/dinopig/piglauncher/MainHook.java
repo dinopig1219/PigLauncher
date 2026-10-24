@@ -100,7 +100,6 @@ public final class MainHook extends XposedModule {
         AllWidgetAnimation.install(this, classLoader, features);
         ShowAllHideApp.install(this, classLoader);
         HideRecentsCleanButton.install(this, classLoader, features);
-        HideStatusBarClock.install(this, classLoader, features);
     }
 
     static Class<?> findClass(String className, ClassLoader classLoader) {

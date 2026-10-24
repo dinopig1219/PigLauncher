@@ -270,20 +270,6 @@ internal fun PigLauncherApp(status: ModuleStatus, service: XposedService?) {
                             },
                         )
 
-                        SwitchPreference(
-                            title = stringResource(R.string.feature_hide_status_bar_clock),
-                            summary = stringResource(R.string.feature_hide_status_bar_clock_summary),
-                            checked = featureSettings.hideStatusBarClock,
-                            onCheckedChange = { checked ->
-                                updateFeature(
-                                    key = FeatureKeys.HIDE_STATUS_BAR_CLOCK,
-                                    value = checked,
-                                ) {
-                                    it.copy(hideStatusBarClock = checked)
-                                }
-                            },
-                        )
-
                         ArrowPreference(
                             title = stringResource(R.string.feature_hide_app_manage),
                             summary = stringResource(R.string.feature_hide_app_manage_summary),
