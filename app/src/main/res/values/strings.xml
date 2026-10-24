@@ -26,6 +26,8 @@
     <string name="feature_all_widget_animation_summary">Enable back bouncing animation for all widgets</string>
     <string name="feature_hide_recents_clean_button">Hide Clear Recents Button</string>
     <string name="feature_hide_recents_clean_button_summary">Hide the clear button in recents</string>
+    <string name="feature_hide_status_bar_clock">Hide Status Bar Clock</string>
+    <string name="feature_hide_status_bar_clock_summary">Hide the status bar clock on the home screen</string>
     <string name="feature_hide_app_manage">Manage Home screen shortcuts</string>
     <string name="feature_hide_app_manage_summary">Unlocked all apps to modify</string>
     <string name="hide_launcher_icon">Hide launcher icon</string>

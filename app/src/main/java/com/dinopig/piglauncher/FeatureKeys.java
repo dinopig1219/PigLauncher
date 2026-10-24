@@ -22,6 +22,9 @@ public final class FeatureKeys {
     public static final String HIDE_RECENTS_CLEAN_BUTTON =
             "hide_recents_clean_button";
 
+    public static final String HIDE_STATUS_BAR_CLOCK =
+            "hide_status_bar_clock";
+
     private FeatureKeys() {
     }
 }
