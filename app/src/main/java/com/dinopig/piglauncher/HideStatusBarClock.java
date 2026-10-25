@@ -20,11 +20,19 @@ final class HideStatusBarClock {
     private static final String MINUS_ONE_SCREEN_VIEW =
             "com.miui.home.launcher.MinusOneScreenView";
 
+    private static final String LAUNCHER_STATE =
+            "com.miui.home.launcher.LauncherState";
+
+    private static final String STATE_MANAGER =
+            "com.miui.home.launcher.LauncherStateManager";
+
     private static Field controllerField;
     private static Method showOrHideClock;
     private static Method isFolderOpened;
     private static Method isMinusScreenShowing;
     private static Method isGoogleMinusScreenShowing;
+    private static Method isInState;
+    private static Object assistantOverlayState;
 
     private static volatile WeakReference<Object> launcherRef = new WeakReference<>(null);
     private static volatile boolean foreground;
@@ -40,6 +48,8 @@ final class HideStatusBarClock {
         Class<?> launcher = MainHook.findClass(LAUNCHER, classLoader);
         Class<?> controller = MainHook.findClass(STATUS_BAR_CONTROLLER, classLoader);
         Class<?> minusOneScreenView = MainHook.findClass(MINUS_ONE_SCREEN_VIEW, classLoader);
+        Class<?> launcherState = MainHook.findClass(LAUNCHER_STATE, classLoader);
+        Class<?> stateManager = MainHook.findClass(STATE_MANAGER, classLoader);
 
         if (baseLauncher == null || launcher == null || controller == null) {
             return;
@@ -64,6 +74,11 @@ final class HideStatusBarClock {
         isMinusScreenShowing = accessible(MainHook.findMethod(baseLauncher, "isMinusScreenShowing"));
         isGoogleMinusScreenShowing = accessible(MainHook.findMethod(baseLauncher, "isGoogleMinusScreenShowing"));
 
+        if (launcherState != null) {
+            isInState = accessible(MainHook.findMethod(baseLauncher, "isInState", launcherState));
+            assistantOverlayState = staticValue(launcherState, "ASSISTANT_OVERLAY_STATE");
+        }
+
         Method onResume = MainHook.findMethod(baseLauncher, "onResume");
         Method onPause = MainHook.findMethod(baseLauncher, "onPause");
         Method onFolderOpenOrClose = MainHook.findMethod(baseLauncher, "onFolderOpenOrClose", boolean.class);
@@ -71,6 +86,10 @@ final class HideStatusBarClock {
         Method setCurrentScreenInner = minusOneScreenView == null
                 ? null
                 : MainHook.findMethod(minusOneScreenView, "setCurrentScreenInner", int.class);
+
+        Method onStateTransitionEnd = stateManager == null || launcherState == null
+                ? null
+                : MainHook.findMethod(stateManager, "onStateTransitionEnd", launcherState);
 
         if (onResume != null) {
             module.hook(onResume).intercept(chain -> {
@@ -132,6 +151,20 @@ final class HideStatusBarClock {
             });
         }
 
+        if (onStateTransitionEnd != null) {
+            module.hook(onStateTransitionEnd).intercept(chain -> {
+                Object result = chain.proceed();
+                Object launcherObject = launcherRef.get();
+
+                if (launcherObject != null) {
+                    minusOpen = readMinusOpen(launcherObject);
+                    apply(launcherObject, features.isHideStatusBarClockEnabled());
+                }
+
+                return result;
+            });
+        }
+
         if (setCurrentScreenInner != null) {
             module.hook(setCurrentScreenInner).intercept(chain -> {
                 Object result = chain.proceed();
@@ -159,7 +192,28 @@ final class HideStatusBarClock {
 
     private static boolean readMinusOpen(Object launcher) {
         return invokeBoolean(isMinusScreenShowing, launcher)
-                || invokeBoolean(isGoogleMinusScreenShowing, launcher);
+                || invokeBoolean(isGoogleMinusScreenShowing, launcher)
+                || inAssistantOverlay(launcher);
+    }
+
+    private static boolean inAssistantOverlay(Object launcher) {
+        try {
+            return isInState != null
+                    && assistantOverlayState != null
+                    && Boolean.TRUE.equals(isInState.invoke(launcher, assistantOverlayState));
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    private static Object staticValue(Class<?> clazz, String name) {
+        try {
+            Field field = clazz.getDeclaredField(name);
+            field.setAccessible(true);
+            return field.get(null);
+        } catch (Throwable ignored) {
+            return null;
+        }
     }
 
     private static boolean invokeBoolean(Method method, Object target) {
