@@ -32,7 +32,8 @@ final class HideStatusBarClock {
     private static Method isMinusScreenShowing;
     private static Method isGoogleMinusScreenShowing;
     private static Method isInState;
-    private static Object assistantOverlayState;
+    private static Class<?> launcherStateClass;
+    private static volatile Object assistantOverlayState;
 
     private static volatile WeakReference<Object> launcherRef = new WeakReference<>(null);
     private static volatile boolean foreground;
@@ -75,8 +76,8 @@ final class HideStatusBarClock {
         isGoogleMinusScreenShowing = accessible(MainHook.findMethod(baseLauncher, "isGoogleMinusScreenShowing"));
 
         if (launcherState != null) {
+            launcherStateClass = launcherState;
             isInState = accessible(MainHook.findMethod(baseLauncher, "isInState", launcherState));
-            assistantOverlayState = staticValue(launcherState, "ASSISTANT_OVERLAY_STATE");
         }
 
         Method onResume = MainHook.findMethod(baseLauncher, "onResume");
@@ -198,8 +199,15 @@ final class HideStatusBarClock {
 
     private static boolean inAssistantOverlay(Object launcher) {
         try {
-            return isInState != null
-                    && assistantOverlayState != null
+            if (isInState == null || launcherStateClass == null) {
+                return false;
+            }
+
+            if (assistantOverlayState == null) {
+                assistantOverlayState = staticValue(launcherStateClass, "ASSISTANT_OVERLAY_STATE");
+            }
+
+            return assistantOverlayState != null
                     && Boolean.TRUE.equals(isInState.invoke(launcher, assistantOverlayState));
         } catch (Throwable ignored) {
             return false;
