@@ -32,13 +32,15 @@ final class HideStatusBarClock {
     private static Method isMinusScreenShowing;
     private static Method isGoogleMinusScreenShowing;
     private static Method isInState;
+    private static Method getStateManager;
+    private static Method isInOverViewState;
     private static Class<?> launcherStateClass;
     private static volatile Object assistantOverlayState;
 
     private static volatile WeakReference<Object> launcherRef = new WeakReference<>(null);
     private static volatile boolean foreground;
     private static volatile boolean folderOpen;
-    private static volatile boolean minusOpen;
+    private static volatile boolean overlayOpen;
     private static volatile boolean clockHidden;
 
     private HideStatusBarClock() {
@@ -75,6 +77,12 @@ final class HideStatusBarClock {
         isMinusScreenShowing = accessible(MainHook.findMethod(baseLauncher, "isMinusScreenShowing"));
         isGoogleMinusScreenShowing = accessible(MainHook.findMethod(baseLauncher, "isGoogleMinusScreenShowing"));
 
+        getStateManager = accessible(MainHook.findMethod(baseLauncher, "getStateManager"));
+
+        if (stateManager != null) {
+            isInOverViewState = accessible(MainHook.findMethod(stateManager, "isInOverViewState"));
+        }
+
         if (launcherState != null) {
             launcherStateClass = launcherState;
             isInState = accessible(MainHook.findMethod(baseLauncher, "isInState", launcherState));
@@ -101,7 +109,7 @@ final class HideStatusBarClock {
                     launcherRef = new WeakReference<>(thisObject);
                     foreground = true;
                     folderOpen = invokeBoolean(isFolderOpened, thisObject);
-                    minusOpen = readMinusOpen(thisObject);
+                    overlayOpen = readOverlayOpen(thisObject);
                     apply(thisObject, features.isHideStatusBarClockEnabled());
                 }
 
@@ -144,7 +152,7 @@ final class HideStatusBarClock {
                 Object thisObject = chain.getThisObject();
 
                 if (launcher.isInstance(thisObject)) {
-                    minusOpen = readMinusOpen(thisObject);
+                    overlayOpen = readOverlayOpen(thisObject);
                     apply(thisObject, features.isHideStatusBarClockEnabled());
                 }
 
@@ -158,7 +166,7 @@ final class HideStatusBarClock {
                 Object launcherObject = launcherRef.get();
 
                 if (launcherObject != null) {
-                    minusOpen = readMinusOpen(launcherObject);
+                    overlayOpen = readOverlayOpen(launcherObject);
                     apply(launcherObject, features.isHideStatusBarClockEnabled());
                 }
 
@@ -172,7 +180,7 @@ final class HideStatusBarClock {
                 Object launcherObject = launcherRef.get();
 
                 if (launcherObject != null) {
-                    minusOpen = readMinusOpen(launcherObject);
+                    overlayOpen = readOverlayOpen(launcherObject);
                     apply(launcherObject, features.isHideStatusBarClockEnabled());
                 }
 
@@ -182,7 +190,7 @@ final class HideStatusBarClock {
     }
 
     private static void apply(Object launcher, boolean enabled) {
-        if (enabled && foreground && !folderOpen && !minusOpen) {
+        if (enabled && foreground && !folderOpen && !overlayOpen) {
             setClockVisible(launcher, false);
             clockHidden = true;
         } else if (clockHidden) {
@@ -191,10 +199,26 @@ final class HideStatusBarClock {
         }
     }
 
-    private static boolean readMinusOpen(Object launcher) {
+    private static boolean readOverlayOpen(Object launcher) {
         return invokeBoolean(isMinusScreenShowing, launcher)
                 || invokeBoolean(isGoogleMinusScreenShowing, launcher)
-                || inAssistantOverlay(launcher);
+                || inAssistantOverlay(launcher)
+                || inRecents(launcher);
+    }
+
+    private static boolean inRecents(Object launcher) {
+        try {
+            if (getStateManager == null || isInOverViewState == null) {
+                return false;
+            }
+
+            Object stateManager = getStateManager.invoke(launcher);
+
+            return stateManager != null
+                    && Boolean.TRUE.equals(isInOverViewState.invoke(stateManager));
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     private static boolean inAssistantOverlay(Object launcher) {
