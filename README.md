@@ -29,6 +29,9 @@ The module only targets POCO Launcher (`com.mi.android.globallauncher`).
 - Hide Clear Recents Button
   - Hide the clear button in recents.
 
+- Hide Status Bar Clock
+  - Hide the status bar clock on the home screen (except App Vault, Recents, and in Folder)
+
 - Manage Home screen shortcuts (Hidden Apps Manager)
   - The module unlocked to let manage all app icon to show or hide.
 
