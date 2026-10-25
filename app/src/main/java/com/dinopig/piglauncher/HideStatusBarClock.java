@@ -18,6 +18,10 @@ final class HideStatusBarClock {
 
     private static Field controllerField;
     private static Method showOrHideClock;
+    private static Method isFolderOpened;
+
+    private static volatile boolean foreground;
+    private static volatile boolean folderOpen;
     private static volatile boolean clockHidden;
 
     private HideStatusBarClock() {
@@ -47,8 +51,15 @@ final class HideStatusBarClock {
 
         showOrHideClock.setAccessible(true);
 
+        isFolderOpened = MainHook.findMethod(baseLauncher, "isFolderOpened");
+
+        if (isFolderOpened != null) {
+            isFolderOpened.setAccessible(true);
+        }
+
         Method onResume = MainHook.findMethod(baseLauncher, "onResume");
         Method onPause = MainHook.findMethod(baseLauncher, "onPause");
+        Method onFolderOpenOrClose = MainHook.findMethod(baseLauncher, "onFolderOpenOrClose", boolean.class);
 
         if (onResume != null) {
             module.hook(onResume).intercept(chain -> {
@@ -56,13 +67,9 @@ final class HideStatusBarClock {
                 Object thisObject = chain.getThisObject();
 
                 if (launcher.isInstance(thisObject)) {
-                    if (features.isHideStatusBarClockEnabled()) {
-                        setClockVisible(thisObject, false);
-                        clockHidden = true;
-                    } else if (clockHidden) {
-                        setClockVisible(thisObject, true);
-                        clockHidden = false;
-                    }
+                    foreground = true;
+                    folderOpen = readFolderOpened(thisObject);
+                    apply(thisObject, features.isHideStatusBarClockEnabled());
                 }
 
                 return result;
@@ -74,13 +81,46 @@ final class HideStatusBarClock {
                 Object result = chain.proceed();
                 Object thisObject = chain.getThisObject();
 
-                if (launcher.isInstance(thisObject) && clockHidden) {
-                    setClockVisible(thisObject, true);
-                    clockHidden = false;
+                if (launcher.isInstance(thisObject)) {
+                    foreground = false;
+                    apply(thisObject, features.isHideStatusBarClockEnabled());
                 }
 
                 return result;
             });
+        }
+
+        if (onFolderOpenOrClose != null) {
+            module.hook(onFolderOpenOrClose).intercept(chain -> {
+                Object result = chain.proceed();
+                Object thisObject = chain.getThisObject();
+
+                if (launcher.isInstance(thisObject)) {
+                    folderOpen = Boolean.TRUE.equals(chain.getArg(0));
+                    apply(thisObject, features.isHideStatusBarClockEnabled());
+                }
+
+                return result;
+            });
+        }
+    }
+
+    private static void apply(Object launcher, boolean enabled) {
+        if (enabled && foreground && !folderOpen) {
+            setClockVisible(launcher, false);
+            clockHidden = true;
+        } else if (clockHidden) {
+            setClockVisible(launcher, true);
+            clockHidden = false;
+        }
+    }
+
+    private static boolean readFolderOpened(Object launcher) {
+        try {
+            return isFolderOpened != null
+                    && Boolean.TRUE.equals(isFolderOpened.invoke(launcher));
+        } catch (Throwable ignored) {
+            return false;
         }
     }
 
