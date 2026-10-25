@@ -2,6 +2,9 @@ package com.dinopig.piglauncher;
 
 import android.content.ContentResolver;
 import android.content.Context;
+import android.database.ContentObserver;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.util.Log;
 
@@ -42,6 +45,7 @@ final class AdvancedTexturesFix {
     private static volatile int lastBlurSupported = -1;
 
     private static volatile XposedModule logger;
+    private static volatile ContentObserver blurObserver;
 
     private AdvancedTexturesFix() {
     }
@@ -95,7 +99,8 @@ final class AdvancedTexturesFix {
                     Object result = chain.proceed();
 
                     if (features.isAdvancedTexturesEnabled()) {
-                        restoreDefaultBlurEnabled(blurUtilitiesClass);
+                        logBlurSetting("start");
+                        registerBlurObserver(blurUtilitiesClass, setBackgroundBlurEnabled);
                     }
 
                     log("setBackgroundBlurEnabled ENABLED="
@@ -265,46 +270,67 @@ final class AdvancedTexturesFix {
                 + " ENABLED=" + readStatic(blurUtilitiesClass, "IS_BACKGROUND_BLUR_ENABLED"));
     }
 
-    private static void restoreDefaultBlurEnabled(Class<?> blurUtilitiesClass) {
+    private static void logBlurSetting(String reason) {
+        ContentResolver resolver = currentResolver();
+
+        if (resolver == null) {
+            log("blurSetting " + reason + " resolver=null");
+            return;
+        }
+
+        log("blurSetting " + reason
+                + " secure=" + Settings.Secure.getInt(resolver, BLUR_SETTING_KEY, -1)
+                + " system=" + Settings.System.getInt(resolver, BLUR_SETTING_KEY, -1)
+                + " global=" + Settings.Global.getInt(resolver, BLUR_SETTING_KEY, -1)
+                + " statusDefault=" + systemProperty("persist.sys.background_blur_status_default")
+                + " supported=" + systemProperty("persist.sys.background_blur_supported")
+                + " release=" + systemProperty("persist.sys.advanced_visual_release"));
+    }
+
+    private static void registerBlurObserver(
+            Class<?> blurUtilitiesClass,
+            Method setBackgroundBlurEnabled
+    ) {
+        if (blurObserver != null) {
+            return;
+        }
+
         try {
-            if (Boolean.TRUE.equals(readStatic(blurUtilitiesClass, "IS_BACKGROUND_BLUR_ENABLED"))) {
+            ContentResolver resolver = currentResolver();
+
+            if (resolver == null) {
                 return;
             }
 
-            ContentResolver resolver = currentResolver();
+            blurObserver = new ContentObserver(new Handler(Looper.getMainLooper())) {
+                @Override
+                public void onChange(boolean selfChange) {
+                    Object before = readStatic(blurUtilitiesClass, "IS_BACKGROUND_BLUR_ENABLED");
 
-            int secure = resolver == null
-                    ? -2
-                    : Settings.Secure.getInt(resolver, BLUR_SETTING_KEY, -1);
+                    logBlurSetting("changed enabledBefore=" + before);
 
-            int system = resolver == null
-                    ? -2
-                    : Settings.System.getInt(resolver, BLUR_SETTING_KEY, -1);
+                    int value = Settings.Secure.getInt(resolver, BLUR_SETTING_KEY, -1);
 
-            int global = resolver == null
-                    ? -2
-                    : Settings.Global.getInt(resolver, BLUR_SETTING_KEY, -1);
+                    if (value == 1 && Boolean.FALSE.equals(before)) {
+                        try {
+                            setBackgroundBlurEnabled.invoke(null);
+                        } catch (Throwable throwable) {
+                            log("blurSetting refresh failed " + throwable);
+                        }
+                    }
+                }
+            };
 
-            String statusDefault = systemProperty("persist.sys.background_blur_status_default");
+            resolver.registerContentObserver(
+                    Settings.Secure.getUriFor(BLUR_SETTING_KEY),
+                    false,
+                    blurObserver
+            );
 
-            boolean forced = secure == -1 && "true".equals(statusDefault);
-
-            if (forced) {
-                Field field = blurUtilitiesClass.getDeclaredField("IS_BACKGROUND_BLUR_ENABLED");
-                field.setAccessible(true);
-                field.setBoolean(null, true);
-            }
-
-            log("blurEnabled fallback secure=" + secure
-                    + " system=" + system
-                    + " global=" + global
-                    + " statusDefault=" + statusDefault
-                    + " supported=" + systemProperty("persist.sys.background_blur_supported")
-                    + " version=" + systemProperty("persist.sys.background_blur_version")
-                    + " release=" + systemProperty("persist.sys.advanced_visual_release")
-                    + " forced=" + forced);
+            log("blurSetting observer registered");
         } catch (Throwable throwable) {
-            log("blurEnabled fallback failed " + throwable);
+            blurObserver = null;
+            log("blurSetting observer failed " + throwable);
         }
     }
 
