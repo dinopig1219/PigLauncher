@@ -1,15 +1,20 @@
 package com.dinopig.piglauncher;
 
 import android.content.Context;
+import android.util.Log;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.github.libxposed.api.XposedModule;
 
 final class AdvancedTexturesFix {
+
+    private static final String TAG = "PigLauncher";
 
     private static final String TARGET_PACKAGE = "com.mi.android.globallauncher";
 
@@ -25,6 +30,15 @@ final class AdvancedTexturesFix {
     private static final String MIUI_CAMERA_COVERED_MANAGER =
             "android.cameracovered.MiuiCameraCoveredManager";
 
+    private static final int MAX_FILTER_LOGS = 16;
+    private static final int HEAD_LENGTH = 200;
+
+    private static final AtomicInteger FILTER_LOG_COUNT = new AtomicInteger();
+
+    private static volatile int lastBlurSupported = -1;
+
+    private static volatile XposedModule logger;
+
     private AdvancedTexturesFix() {
     }
 
@@ -33,6 +47,8 @@ final class AdvancedTexturesFix {
             ClassLoader classLoader,
             FeatureSwitches features
     ) {
+        logger = module;
+
         Class<?> blurUtilitiesClass = MainHook.findClass(
                 BLUR_UTILITIES,
                 classLoader
@@ -44,6 +60,14 @@ final class AdvancedTexturesFix {
                     "isBlurSupported"
             );
 
+            Method setBackgroundBlurEnabled = MainHook.findMethod(
+                    blurUtilitiesClass,
+                    "setBackgroundBlurEnabled"
+            );
+
+            log("install isBlurSupported=" + (isBlurSupported != null)
+                    + " setBackgroundBlurEnabled=" + (setBackgroundBlurEnabled != null));
+
             if (isBlurSupported != null) {
                 module.hook(isBlurSupported).intercept(chain -> {
                     if (!features.isAdvancedTexturesEnabled()) {
@@ -53,12 +77,29 @@ final class AdvancedTexturesFix {
                     LauncherGate.enter();
 
                     try {
-                        return chain.proceed();
+                        Object result = chain.proceed();
+                        logBlurSupported(blurUtilitiesClass, result);
+                        return result;
                     } finally {
                         LauncherGate.exit();
                     }
                 });
             }
+
+            if (setBackgroundBlurEnabled != null) {
+                module.hook(setBackgroundBlurEnabled).intercept(chain -> {
+                    Object result = chain.proceed();
+
+                    log("setBackgroundBlurEnabled ENABLED="
+                            + readStatic(blurUtilitiesClass, "IS_BACKGROUND_BLUR_ENABLED"));
+
+                    lastBlurSupported = -1;
+
+                    return result;
+                });
+            }
+        } else {
+            log("install BlurUtilities not found");
         }
 
         hookPassWindowBlurFilter(
@@ -91,12 +132,15 @@ final class AdvancedTexturesFix {
             FeatureSwitches features,
             Class<?>... parameterTypes
     ) {
+        String shortName = className.substring(className.lastIndexOf('.') + 1);
+
         Class<?> clazz = MainHook.findClass(
                 className,
                 classLoader
         );
 
         if (clazz == null) {
+            log("install " + shortName + " class not found");
             return;
         }
 
@@ -107,8 +151,11 @@ final class AdvancedTexturesFix {
         );
 
         if (method == null) {
+            log("install " + shortName + " method not found");
             return;
         }
+
+        log("install " + shortName + " hooked");
 
         module.hook(method).intercept(chain -> {
             Object result = chain.proceed();
@@ -118,10 +165,23 @@ final class AdvancedTexturesFix {
             }
 
             if (!(result instanceof String)) {
+                logFilter(shortName, "result=" + result);
                 return result;
             }
 
-            return patchPassWindowBlurFilter((String) result);
+            String original = (String) result;
+            String patched = patchPassWindowBlurFilter(original);
+
+            logFilter(
+                    shortName,
+                    "len=" + original.length()
+                            + " hadTarget=" + original.contains(TARGET_PACKAGE)
+                            + " hasTarget=" + patched.contains(TARGET_PACKAGE)
+                            + " changed=" + !original.equals(patched)
+                            + " head=" + original.substring(0, Math.min(HEAD_LENGTH, original.length()))
+            );
+
+            return patched;
         });
     }
 
@@ -159,6 +219,51 @@ final class AdvancedTexturesFix {
             return root.toString();
         } catch (Throwable ignored) {
             return original;
+        }
+    }
+
+    private static void log(String message) {
+        XposedModule module = logger;
+
+        if (module == null) {
+            return;
+        }
+
+        try {
+            module.log(Log.INFO, TAG, message);
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private static void logFilter(String name, String message) {
+        if (FILTER_LOG_COUNT.incrementAndGet() > MAX_FILTER_LOGS) {
+            return;
+        }
+
+        log("filter[" + name + "] " + message);
+    }
+
+    private static void logBlurSupported(Class<?> blurUtilitiesClass, Object result) {
+        int value = Boolean.TRUE.equals(result) ? 1 : 0;
+
+        if (value == lastBlurSupported) {
+            return;
+        }
+
+        lastBlurSupported = value;
+
+        log("isBlurSupported=" + result
+                + " SUPPORTED=" + readStatic(blurUtilitiesClass, "IS_BACKGROUND_BLUR_SUPPORTED")
+                + " ENABLED=" + readStatic(blurUtilitiesClass, "IS_BACKGROUND_BLUR_ENABLED"));
+    }
+
+    private static Object readStatic(Class<?> clazz, String name) {
+        try {
+            Field field = clazz.getDeclaredField(name);
+            field.setAccessible(true);
+            return field.get(null);
+        } catch (Throwable ignored) {
+            return "?";
         }
     }
 }
