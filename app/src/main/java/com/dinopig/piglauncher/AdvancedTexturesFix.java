@@ -1,6 +1,8 @@
 package com.dinopig.piglauncher;
 
+import android.content.ContentResolver;
 import android.content.Context;
+import android.provider.Settings;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -29,6 +31,8 @@ final class AdvancedTexturesFix {
 
     private static final String MIUI_CAMERA_COVERED_MANAGER =
             "android.cameracovered.MiuiCameraCoveredManager";
+
+    private static final String BLUR_SETTING_KEY = "background_blur_enable";
 
     private static final int MAX_FILTER_LOGS = 16;
     private static final int HEAD_LENGTH = 200;
@@ -89,6 +93,10 @@ final class AdvancedTexturesFix {
             if (setBackgroundBlurEnabled != null) {
                 module.hook(setBackgroundBlurEnabled).intercept(chain -> {
                     Object result = chain.proceed();
+
+                    if (features.isAdvancedTexturesEnabled()) {
+                        restoreDefaultBlurEnabled(blurUtilitiesClass);
+                    }
 
                     log("setBackgroundBlurEnabled ENABLED="
                             + readStatic(blurUtilitiesClass, "IS_BACKGROUND_BLUR_ENABLED"));
@@ -255,6 +263,75 @@ final class AdvancedTexturesFix {
         log("isBlurSupported=" + result
                 + " SUPPORTED=" + readStatic(blurUtilitiesClass, "IS_BACKGROUND_BLUR_SUPPORTED")
                 + " ENABLED=" + readStatic(blurUtilitiesClass, "IS_BACKGROUND_BLUR_ENABLED"));
+    }
+
+    private static void restoreDefaultBlurEnabled(Class<?> blurUtilitiesClass) {
+        try {
+            if (Boolean.TRUE.equals(readStatic(blurUtilitiesClass, "IS_BACKGROUND_BLUR_ENABLED"))) {
+                return;
+            }
+
+            ContentResolver resolver = currentResolver();
+
+            int secure = resolver == null
+                    ? -2
+                    : Settings.Secure.getInt(resolver, BLUR_SETTING_KEY, -1);
+
+            int system = resolver == null
+                    ? -2
+                    : Settings.System.getInt(resolver, BLUR_SETTING_KEY, -1);
+
+            int global = resolver == null
+                    ? -2
+                    : Settings.Global.getInt(resolver, BLUR_SETTING_KEY, -1);
+
+            String statusDefault = systemProperty("persist.sys.background_blur_status_default");
+
+            boolean forced = secure == -1 && "true".equals(statusDefault);
+
+            if (forced) {
+                Field field = blurUtilitiesClass.getDeclaredField("IS_BACKGROUND_BLUR_ENABLED");
+                field.setAccessible(true);
+                field.setBoolean(null, true);
+            }
+
+            log("blurEnabled fallback secure=" + secure
+                    + " system=" + system
+                    + " global=" + global
+                    + " statusDefault=" + statusDefault
+                    + " supported=" + systemProperty("persist.sys.background_blur_supported")
+                    + " version=" + systemProperty("persist.sys.background_blur_version")
+                    + " release=" + systemProperty("persist.sys.advanced_visual_release")
+                    + " forced=" + forced);
+        } catch (Throwable throwable) {
+            log("blurEnabled fallback failed " + throwable);
+        }
+    }
+
+    private static ContentResolver currentResolver() {
+        try {
+            Object application = Class.forName("android.app.ActivityThread")
+                    .getMethod("currentApplication")
+                    .invoke(null);
+
+            return application instanceof Context
+                    ? ((Context) application).getContentResolver()
+                    : null;
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static String systemProperty(String key) {
+        try {
+            Object value = Class.forName("android.os.SystemProperties")
+                    .getMethod("get", String.class, String.class)
+                    .invoke(null, key, "");
+
+            return String.valueOf(value);
+        } catch (Throwable ignored) {
+            return "?";
+        }
     }
 
     private static Object readStatic(Class<?> clazz, String name) {
