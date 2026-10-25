@@ -1,10 +1,13 @@
 package com.dinopig.piglauncher;
 
-import android.content.Context;
+import android.app.Activity;
+import android.os.Handler;
+import android.os.Looper;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 import io.github.libxposed.api.XposedModule;
@@ -16,6 +19,12 @@ final class AdvancedTexturesFix {
     private static final String BLUR_UTILITIES =
             "com.miui.home.common.utils.BlurUtilities";
 
+    private static final String BASE_LAUNCHER =
+            "com.miui.home.launcher.BaseLauncher";
+
+    private static final String LAUNCHER =
+            "com.miui.home.launcher.Launcher";
+
     private static final String VIEW_ROOT_IMPL_STUB_IMPL =
             "android.view.ViewRootImplStubImpl";
 
@@ -24,6 +33,10 @@ final class AdvancedTexturesFix {
 
     private static final String MIUI_CAMERA_COVERED_MANAGER =
             "android.cameracovered.MiuiCameraCoveredManager";
+
+    private static final long RECREATE_DELAY_MS = 500L;
+
+    private static volatile boolean firstResumeHandled;
 
     private AdvancedTexturesFix() {
     }
@@ -59,6 +72,26 @@ final class AdvancedTexturesFix {
                     }
                 });
             }
+
+            Class<?> baseLauncher = MainHook.findClass(BASE_LAUNCHER, classLoader);
+            Class<?> launcher = MainHook.findClass(LAUNCHER, classLoader);
+
+            Method onResume = baseLauncher == null
+                    ? null
+                    : MainHook.findMethod(baseLauncher, "onResume");
+
+            if (onResume != null && launcher != null) {
+                module.hook(onResume).intercept(chain -> {
+                    Object result = chain.proceed();
+                    Object thisObject = chain.getThisObject();
+
+                    if (launcher.isInstance(thisObject) && thisObject instanceof Activity) {
+                        recreateOnce((Activity) thisObject, blurUtilitiesClass, features);
+                    }
+
+                    return result;
+                });
+            }
         }
 
         hookPassWindowBlurFilter(
@@ -66,7 +99,7 @@ final class AdvancedTexturesFix {
                 VIEW_ROOT_IMPL_STUB_IMPL,
                 classLoader,
                 features,
-                Context.class
+                android.content.Context.class
         );
 
         hookPassWindowBlurFilter(
@@ -82,6 +115,35 @@ final class AdvancedTexturesFix {
                 classLoader,
                 features
         );
+    }
+
+    private static void recreateOnce(
+            Activity activity,
+            Class<?> blurUtilitiesClass,
+            FeatureSwitches features
+    ) {
+        if (firstResumeHandled) {
+            return;
+        }
+
+        firstResumeHandled = true;
+
+        if (!features.isAdvancedTexturesEnabled()) {
+            return;
+        }
+
+        if (!Boolean.TRUE.equals(readStatic(blurUtilitiesClass, "IS_BACKGROUND_BLUR_ENABLED"))) {
+            return;
+        }
+
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            try {
+                if (!activity.isFinishing() && !activity.isDestroyed()) {
+                    activity.recreate();
+                }
+            } catch (Throwable ignored) {
+            }
+        }, RECREATE_DELAY_MS);
     }
 
     private static void hookPassWindowBlurFilter(
@@ -113,11 +175,7 @@ final class AdvancedTexturesFix {
         module.hook(method).intercept(chain -> {
             Object result = chain.proceed();
 
-            if (!features.isAdvancedTexturesEnabled()) {
-                return result;
-            }
-
-            if (!(result instanceof String)) {
+            if (!features.isAdvancedTexturesEnabled() || !(result instanceof String)) {
                 return result;
             }
 
@@ -159,6 +217,16 @@ final class AdvancedTexturesFix {
             return root.toString();
         } catch (Throwable ignored) {
             return original;
+        }
+    }
+
+    private static Object readStatic(Class<?> clazz, String name) {
+        try {
+            Field field = clazz.getDeclaredField(name);
+            field.setAccessible(true);
+            return field.get(null);
+        } catch (Throwable ignored) {
+            return null;
         }
     }
 }
