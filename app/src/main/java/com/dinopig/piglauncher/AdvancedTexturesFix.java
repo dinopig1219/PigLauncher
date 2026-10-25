@@ -1,5 +1,6 @@
 package com.dinopig.piglauncher;
 
+import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.ContentObserver;
@@ -37,6 +38,14 @@ final class AdvancedTexturesFix {
 
     private static final String BLUR_SETTING_KEY = "background_blur_enable";
 
+    private static final String BASE_LAUNCHER =
+            "com.miui.home.launcher.BaseLauncher";
+
+    private static final String LAUNCHER =
+            "com.miui.home.launcher.Launcher";
+
+    private static final long RECREATE_DELAY_MS = 500L;
+
     private static final int MAX_FILTER_LOGS = 16;
     private static final int HEAD_LENGTH = 200;
 
@@ -46,6 +55,7 @@ final class AdvancedTexturesFix {
 
     private static volatile XposedModule logger;
     private static volatile ContentObserver blurObserver;
+    private static volatile boolean recreateScheduled;
 
     private AdvancedTexturesFix() {
     }
@@ -107,6 +117,26 @@ final class AdvancedTexturesFix {
                             + readStatic(blurUtilitiesClass, "IS_BACKGROUND_BLUR_ENABLED"));
 
                     lastBlurSupported = -1;
+
+                    return result;
+                });
+            }
+
+            Class<?> baseLauncher = MainHook.findClass(BASE_LAUNCHER, classLoader);
+            Class<?> launcher = MainHook.findClass(LAUNCHER, classLoader);
+
+            Method onResume = baseLauncher == null
+                    ? null
+                    : MainHook.findMethod(baseLauncher, "onResume");
+
+            if (onResume != null && launcher != null) {
+                module.hook(onResume).intercept(chain -> {
+                    Object result = chain.proceed();
+                    Object thisObject = chain.getThisObject();
+
+                    if (launcher.isInstance(thisObject) && thisObject instanceof Activity) {
+                        scheduleRecreate((Activity) thisObject, blurUtilitiesClass, features);
+                    }
 
                     return result;
                 });
@@ -268,6 +298,35 @@ final class AdvancedTexturesFix {
         log("isBlurSupported=" + result
                 + " SUPPORTED=" + readStatic(blurUtilitiesClass, "IS_BACKGROUND_BLUR_SUPPORTED")
                 + " ENABLED=" + readStatic(blurUtilitiesClass, "IS_BACKGROUND_BLUR_ENABLED"));
+    }
+
+    private static void scheduleRecreate(
+            Activity activity,
+            Class<?> blurUtilitiesClass,
+            FeatureSwitches features
+    ) {
+        if (recreateScheduled || !features.isAdvancedTexturesEnabled()) {
+            return;
+        }
+
+        if (!Boolean.TRUE.equals(readStatic(blurUtilitiesClass, "IS_BACKGROUND_BLUR_ENABLED"))) {
+            return;
+        }
+
+        recreateScheduled = true;
+
+        log("recreate scheduled");
+
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            try {
+                if (!activity.isFinishing() && !activity.isDestroyed()) {
+                    log("recreate now");
+                    activity.recreate();
+                }
+            } catch (Throwable throwable) {
+                log("recreate failed " + throwable);
+            }
+        }, RECREATE_DELAY_MS);
     }
 
     private static void logBlurSetting(String reason) {
